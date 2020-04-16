@@ -1,5 +1,18 @@
 # Network-Layer-Verification
 ## General description
+Our main goal is to provide a verified abstract interface for communication in
+the TCP/IP network.
+TCP is one of the main communication protocols of the internet, it provides reliable,
+ordered and error-checked delivery of a stream of bytes between applications running on hosts communicating via an IP network.
+On a TCP/IP network every device must have an IP address.the IP address identifies the computer. However an IP address alone is not sufficient for running network applications, as a computer can run multiple applications/services.
+Just as the IP address identifies the computer, The network port identifies the application or service running on the computer.The use of ports allow computers/devices to run multiple services/applications.An IP address and a port number equals to a socket.
+a network socket is an internal endpoint for sending or receiving data within
+a node on a computer network.Concretely, it is a representation of this endpoint in networking software, such as an entry in a table.
+In our project we will use the TCP protocol and sockets to establish the connection between a
+client and our server and will provide a simple implementation for this type of connections.
+
+
+## Implementation description
 Our system is built on a central communication component(connectionManager)
 that is not exposed to the users or any other computer receiving the messages,
 whether they are intended for the computer or not.
@@ -20,6 +33,7 @@ listens to that port, if we don't find we will throw the message or send an
 error message back to the client. then our system adds the message to the TCP
 window that the socket contains, if we have the whole message we can return
 a message according to the request  to the client.
+
 ## Features
 1. Our system will manage the operations related to the sockets such as: creating
 new communication endpoint("socket"), attaching a local address to a socket
