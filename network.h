@@ -72,4 +72,3 @@ int SocketSend(SocketID sockid, char* message);
  */
 int SocketRecv(SocketID sockid, char* recvBuffer, int bufferLen);
 
-
