@@ -24,12 +24,29 @@ struct HashMap_t{
     int size;
     Node* table;
     socketCopy socketCopyFunction;
+    freeSocket freeSocketFuncition;
+    compareSocket compareSocketFunction;
+    freeKey freeKeyFunction;
     compareKey compareKeyFunction;
     copyKey copyKeyFunction;
 
 };
+//change later - instead of sending functions to create just put these functions inside
 
-HashMap createHashMap(int size,socketCopy socketCopyFunction,compareKey compareKeyFunction,copyKey copyKeyFunction){
+bool compareKeys(Key key1,Key key2){
+    return key1->remotePort == key2->remotePort && strcmp(key1->localIp,key2->localIp) &&
+           key1->localPort == key2->localPort && strcmp(key1->remoteIp,key2->remoteIp);
+}
+Key copyKeyFunction(Key key){
+    Key new = malloc(sizeof(*new));
+    new->localPort = key->localPort;
+    new->remotePort = key->remotePort;
+    strcpy(new->localIp,key->localIp);
+    strcpy(new->remoteIp,key->remoteIp);
+    return new;
+}
+HashMap createHashMap(int size,socketCopy socketCopyFunction,freeSocket freeSocketFuncition ,compareSocket compareSocketFunction
+        ,copyKey copyKeyFunction,freeKey freeKeyFunction,compareKey compareKeyFunction){
     HashMap hashMap = malloc(sizeof(*hashMap));
     hashMap->size=size;
     hashMap->table = malloc(sizeof(hashMap->table)*size);
@@ -37,8 +54,11 @@ HashMap createHashMap(int size,socketCopy socketCopyFunction,compareKey compareK
         hashMap->table[i] = NULL;
     }
     hashMap->socketCopyFunction=socketCopyFunction;
+    hashMap->freeSocketFuncition=freeSocketFuncition;
+    hashMap->compareKeyFunction=compareKeyFunction;
     hashMap->compareKeyFunction =compareKeyFunction;
     hashMap->copyKeyFunction=copyKeyFunction;
+    hashMap->freeKeyFunction=freeKeyFunction;
     return hashMap;
 }
 int hashCode(HashMap hashMap, Key key){
@@ -77,21 +97,63 @@ Socket getSocket(HashMap hashMap,Key key){
     //????
     return NULL;
 }
+void hashmapRemove(HashMap hashMap, Key key) {
+    if (hashMap == NULL)
+        return;
+    int pos = hashCode(hashMap, key);
+    Node posList = hashMap->table[pos];
+    Node tmp = posList;
+    if (!tmp)
+        return; //the list is empty
+    if (tmp->next == NULL) {
+        if (hashMap->compareKeyFunction(key, tmp->key))//one element in the posList
+        {
+            hashMap->freeKeyFunction(tmp->key);
+            hashMap->freeSocketFuncition(tmp->socket);
+            free(tmp);
+            hashMap->table[pos] = NULL;
+            return;
+        } else{
+            return;
+        }
+    }
+    if(hashMap->compareKeyFunction(key,tmp->key))//more than one element but we want to remove the first
+    {
+        hashMap->table[pos] = tmp->next;
+        hashMap->freeKeyFunction(tmp->key);
+        hashMap->freeSocketFuncition(tmp->socket);
+        free(tmp);
+        return;
+    }
+    while(tmp && tmp->next){
+        if(hashMap->compareKeyFunction(tmp->next->key,key)){
+            Node tmpNext = tmp->next->next;
+            hashMap->freeKeyFunction(tmp->next->key);
+            hashMap->freeSocketFuncition(tmp->next->socket);
+            free(tmp->next);
+            tmp->next = tmpNext;
+            return;
+        }
+        tmp=tmp->next;
+    }
+    //fail - what do we do?
 
-/////////////////////////////////////
-//for use when building a dictionary
-bool compareKeys(Key key1,Key key2){
-    return key1->remotePort == key2->remotePort && strcmp(key1->localIp,key2->localIp) &&
-                            key1->localPort == key2->localPort && strcmp(key1->remoteIp,key2->remoteIp);
 }
-Key copyKeyFunction(Key key){
-    Key new = malloc(sizeof(*new));
-    new->localPort = key->localPort;
-    new->remotePort = key->remotePort;
-    strcpy(new->localIp,key->localIp);
-    strcpy(new->remoteIp,key->remoteIp);
-    return new;
+void hashDestroy(HashMap hashMap){
+    if(!hashMap)
+        return;
+    for(int i=0; i<hashMap->size;i++){
+        Node tmp= hashMap->table[i];
+        while(tmp){
+            hashmapRemove(hashMap,tmp->key);
+            tmp = hashMap->table[i];
+
+        }
+    }
+    free(hashMap->table);
+    free(hashMap);
 }
+
 
 
 
