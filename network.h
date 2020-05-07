@@ -1,10 +1,16 @@
+#ifndef __NETWORK_H__
+#define __NETWORK_H__
+
 /* 
  *	This file will contain signatures and additional definitions
  *	for the final interface of our project.
  */
 
 // Unique identifier of a socket object.
-typedef int SocketID;
+typedef struct {
+	int src_port, dst_port;
+	char* src_ip, *dst_ip;
+} * SocketID;
 
 #define ILLEGAL_SOCKET_ID -1
 
@@ -72,3 +78,4 @@ int SocketSend(SocketID sockid, char* message);
  */
 int SocketRecv(SocketID sockid, char* recvBuffer, int bufferLen);
 
+#endif
