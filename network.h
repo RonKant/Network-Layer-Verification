@@ -8,6 +8,7 @@
 
 // Unique identifier of a socket object.
 typedef struct {
+	int id; // positive unique, or -1
 	int src_port, dst_port;
 	char* src_ip, *dst_ip;
 } * SocketID;
@@ -44,7 +45,6 @@ Status SocketClose(SocketID sockid);
  * Binds a socket to a given address.
  */
 Status SocketBind(SocketID sockid, Address addrport);
-
 
 /*
  * Instructs TCP protocol to listen for connections on given socket.

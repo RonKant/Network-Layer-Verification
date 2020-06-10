@@ -68,6 +68,11 @@ char* tcp_to_str(TCPPacket packet) {
 	return result;
 }
 
+void print_tcp_packet(TCPPacket packet) {
+    printf("ports: %d %d\nnums: %d %d\ndata offset: %d\nflags: %d\nwsize: %d\ncksum: %d\ndata: %s\n", packet->src_port, packet->dst_port,
+        packet->seq_num, packet->ack_num, packet->data_offset, packet->flags, packet->window_size, packet->checksum, packet->data);
+}
+
 int calc_checksum(Socket socket, TCPPacket packet) {
 	int result = 0;
 	
@@ -87,4 +92,37 @@ int calc_checksum(Socket socket, TCPPacket packet) {
 	}
 
 	return result;
+}
+
+/**
+ * 
+ * typedef struct {
+	int src_port;
+	int dst_port;
+	int seq_num;
+	int ack_num;
+	int data_offset; // header size in multiples of 32
+	char flags; // without NS
+	int window_size; // bytes you can receive starting from ack_num
+	int checksum;
+	char* data; // the message itself, after the header
+} * TCPPacket;*/
+
+void destroyPacket(TCPPacket packet) {
+	if (packet == NULL) {return;}
+	free(packet->data);
+	free(packet);
+}
+
+TCPPacket construct_ack_packet(Socket socket) {
+    TCPPacket result = pack_data(socket, "", calc_next_send_seq(socket)); // take an empty data packet and change it's fields.
+                                                                                // seq_num does not matter for ACK only packet.
+    if (result == NULL) {
+        return NULL;
+    }
+
+    result->flags |= ACK;
+    result->checksum = calc_checksum(socket, result); // calculate checksum again since we changed the flags
+
+    return result;
 }

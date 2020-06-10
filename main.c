@@ -4,11 +4,6 @@
 #include "tcp.h"
 #include "socket.h"
 
-void print_tcp_packet(TCPPacket packet) {
-    printf("ports: %d %d\nnums: %d %d\ndata offset: %d\nflags: %d\nwsize: %d\ncksum: %d\ndata: %s\n", packet->src_port, packet->dst_port,
-        packet->seq_num, packet->ack_num, packet->data_offset, packet->flags, packet->window_size, packet->checksum, packet->data);
-}
-
 int main() {
     TCPPacket p = malloc(sizeof(*p));
     p->src_port = 8080;
@@ -30,10 +25,10 @@ int main() {
     Socket sock = (Socket) malloc(sizeof(*sock));
     sock->id = (SocketID)malloc(sizeof(*(sock->id)));
     (sock->id)->src_port = 11; (sock->id)->dst_port = 22; (sock->id)->src_ip = "127.0.0.1"; (sock->id)->dst_ip = "127.0.0.2";
-    sock->next_seq = 55; sock->last_ack = 66; sock->state = ESTABLISED;
+    sock->seq_of_first_send_window = 55; sock->seq_of_first_recv_window = 66; sock->state = ESTABLISED;
     sock->send_window_size = 4096; sock->recv_window_size = 4096;
 
-    TCPPacket p3 = pack_data(sock, "cool verification");
+    TCPPacket p3 = pack_data(sock, "cool verification", 33);
     printf("%s\n", tcp_to_str(p3));
     print_tcp_packet(str_to_tcp(tcp_to_str(p3)));
 
