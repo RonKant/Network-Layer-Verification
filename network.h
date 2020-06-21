@@ -8,23 +8,23 @@
 
 // Unique identifier of a socket object.
 typedef struct {
-	int src_port, dst_port;
-	char* src_ip, *dst_ip;
+    int src_port, dst_port;
+    char* src_ip, *dst_ip;
 } * SocketID;
 
 #define ILLEGAL_SOCKET_ID -1
 
 // All possible error codes.
 typedef enum {
-	SUCCESS
+    SUCCESS
 } Status;
 
 /*
  * 	An (ip, port) tuple for representing destinations accross the network.
  */
 typedef struct {
-	char* addr;
-	int port;
+    char* addr;
+    int port;
 }* Address;
 
 

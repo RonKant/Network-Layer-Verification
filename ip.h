@@ -8,6 +8,7 @@
 #include "Hashmap.h"
 #include "util_types.h"
 #include "tcp.h"
+#include "packet_handlers.h"
 #include "socket.h"
 
 /*
@@ -15,7 +16,7 @@
 */
 typedef struct {
 
-    int vesion;
+    int version;
     int ihl;
     int dscp_and_ecn;
     int total_length;
@@ -24,10 +25,14 @@ typedef struct {
     int ttl;
     int protocol;
     int header_checksum;
-    int src_ip;
-    int dst_ip;
+    char* src_ip;
+    char* dst_ip;
     char* data; // the message itself, after the header
 } * IPPacket;
 
+/**
+ * Sends a packet immediately (skips/after window mechanism)
+ */
+bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst);
 
 #endif //CODE_IP_H

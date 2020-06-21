@@ -3,15 +3,15 @@
 #include <stdio.h>
 
 #include "ip.h"
+#include "util_types.h"
 
 
-
-const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%08X%08X%";
+const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%08s%08s%";
 
 IPPacket str_to_ip(char* s) {
     IPPacket result = (IPPacket)malloc(sizeof(*result));
     int scanned = sscanf(s, ip_str_repr,
-                         &(result->vesion),
+                         &(result->version),
                          &(result->ihl),
                          &(result->dscp_and_ecn),
                          &(result->total_length),
@@ -53,7 +53,7 @@ char* ip_to_str(IPPacket packet) {
     }
 
     int retval = sprintf(result,ip_str_repr,
-                         (packet->vesion),
+                         (packet->version),
                          (packet->ihl),
                          (packet->dscp_and_ecn),
                          (packet->total_length),
@@ -90,10 +90,10 @@ void create_key(char* s, HashMap hash_map){
 
 bool is_contain_full(Key key, HashMap hash_map,char* data){
     Socket s = getSocket(hash_map,key);
-    if (s==NULL || s->state == FIN_WAIT_CLIENT1){
+    if (s==NULL || s->state == CLOSED){
         return false;
     }
-    pack_data(s,data);
+    pack_data(s,data,1);
     return true;
 }
 
@@ -102,9 +102,55 @@ bool is_contain_half(Key key, HashMap hash_map,char* data){
     if (s==NULL || s->state != LISTEN){
         return false;
     }
-    pack_data(s,data);
+    pack_data(s,data,0);
     return true;
 }
 
+bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst){
+    IPPacket packet = (IPPacket)malloc(sizeof(*packet));
+    packet->data = tcp_as_str;
+    packet->version=0, packet->ihl=0, packet->dscp_and_ecn=0;
+    packet->total_length=0;
+    packet->id=0, packet->flags_and_offset=0,packet->ttl=0,packet->protocol=0,packet->header_checksum=0;
+
+    packet->src_ip = socket->id->src_ip;
+    packet->dst_ip = ip_dst;
+
+    FILE *fp;
+    fp = fopen(ip_dst, "w+");
+    fprintf(fp, ip_to_str(packet));
+    fclose(fp);
+    return true;
 
 
+}
+
+Key getKeyFromIPpacket(IPPacket packet){
+    TCPPacket tcp_packet = str_to_tcp(packet->data);
+    Key key = (Key)malloc(sizeof(*key));
+
+    key->localPort = tcp_packet->src_port;
+    key->remotePort = tcp_packet->dst_port;
+    free(tcp_packet);
+
+    key->localIp = packet->src_ip;
+    key->remoteIp = packet->dst_ip;
+
+    return key;
+}
+
+bool handle_ip_message(char* ip_header, HashMap hashMap){
+    IPPacket ip_packet = str_to_ip(ip_header);
+    Key key = getKeyFromIPpacket(ip_packet);
+    Socket socket = getSocket(hashMap, key);
+    free(key);
+    if (socket==NULL)
+        return false;
+
+    TCPPacket after_handle_packet = handle_packet(socket,str_to_tcp(ip_packet->data),ip_packet->src_ip);
+    if (after_handle_packet!=NULL){
+        send_packet(socket,ip_packet->data,ip_packet->dst_ip);
+    }
+
+    return true;
+}
