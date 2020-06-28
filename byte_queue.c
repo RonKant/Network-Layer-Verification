@@ -65,7 +65,7 @@ char deQueue(ByteQueue q) {
 
     struct QNode* temp = q->front;
     q->front = q->front->next;
-
+    
     if (q->front == NULL) {
         q->rear = NULL;
     }

@@ -1,4 +1,3 @@
-
 #ifndef __CONN_QUEUE_H
 #define __CONN_QUEUE_H
 

@@ -20,37 +20,37 @@ TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip) {
     switch(socket->state) {
         case CLOSED:
             response_packet = handle_packet_closed(socket, packet, src_ip);
-            break;
+        break;
         case LISTEN:
             response_packet = handle_packet_listen(socket, packet, src_ip);
-            break;
+        break;
         case SYN_SENT:
-            response_packet = handle_packet_syn_sent(socket, packet, src_ip);
-            break;
+             response_packet = handle_packet_syn_sent(socket, packet, src_ip);
+        break;
         case SYN_RECEIVED:
-            response_packet = handle_packet_syn_received(socket, packet, src_ip);
-            break;
+             response_packet = handle_packet_syn_received(socket, packet, src_ip);
+        break;
         case ESTABLISED:
             response_packet = handle_packet_established(socket, packet, src_ip);
-            break;
+        break;
         case CLOSE_WAIT:
             response_packet = handle_packet_close_wait(socket, packet, src_ip);
-            break;
+        break;
         case LAST_ACK:
             response_packet = handle_packet_last_ack(socket, packet, src_ip);
-            break;
+        break;
         case FIN_WAIT_1:
             response_packet = handle_packet_fin_wait_1(socket,  packet, src_ip);
-            break;
+        break;
         case FIN_WAIT_2:
             response_packet = handle_packet_fin_wait_2(socket, packet, src_ip);
-            break;
+        break;
         case CLOSING:
             response_packet = handle_packet_closing(socket, packet, src_ip);
-            break;
+        break;
         case TIME_WAIT:
             response_packet = handle_packet_time_wait(socket, packet, src_ip);
-            break;
+        break;
     }
     free(packet);
     return response_packet;
@@ -58,7 +58,7 @@ TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip) {
 
 TCPPacket generate_rst_packet(Socket socket) {
     TCPPacket result = pack_data(socket, "", calc_next_send_seq(socket)); // take an empty data packet and change it's fields.
-    // seq_num does not matter for RST only packet.
+                                                                                // seq_num does not matter for RST only packet.
     if (result == NULL) {
         return NULL;
     }
@@ -96,18 +96,19 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip) {
     int my_seq = rand();
     socket->seq_of_first_send_window = my_seq;
 
-    Socket new_conn = create_new_socket(); // TODO - maybe create with key built in so no need to call update in line 98 ish
+    Socket new_conn = create_new_socket();
 
     if (new_conn == NULL) {
         return generate_rst_packet(socket);
     }
 
-//    update_socket_id(new_conn->id, src_ip, packet->src_port); // TODO: this should update Tomer's dictionary key
+    update_socket_id(new_conn->id, socket->id->src_ip, socket->id->src_port, src_ip, packet->src_port); // TODO: this should update Tomer's dictionary key
+                                                                                                        // TODO: also check return value (this pair might already exist)
     new_conn->state = SYN_RECEIVED;
     new_conn->seq_of_first_recv_window = packet->seq_num+1;
 
     TCPPacket result = pack_data(socket, "", calc_next_send_seq(socket)); // take an empty data packet and change it's fields.
-    // will be a SYN+ACK packet
+                                                                            // will be a SYN+ACK packet
     if (result == NULL) {
         free(new_conn);
         return generate_rst_packet(socket);
@@ -157,15 +158,15 @@ TCPPacket handle_packet_syn_received(Socket socket, TCPPacket packet, char* src_
  */
 void receiveNewData(Socket socket, TCPPacket packet) {
     for (int i = 0; i < strlen(packet->data); ++i) { // take only missing bytes into receive window
-        int current_byte_seq = packet->seq_num + i;
-        int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
-        if (place_in_window >= 0 && place_in_window <= socket->recv_window_size) {
-            if ((socket->recv_window_isvalid)[place_in_window] == false) {
-                (socket->recv_window)[place_in_window] = (packet->data)[i];
-                (socket->recv_window_isvalid)[place_in_window] = true;
+                int current_byte_seq = packet->seq_num + i;
+                int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
+                if (place_in_window >= 0 && place_in_window <= socket->recv_window_size) {
+                    if ((socket->recv_window_isvalid)[place_in_window] == false) {
+                        (socket->recv_window)[place_in_window] = (packet->data)[i];
+                        (socket->recv_window_isvalid)[place_in_window] = true;
+                    }
+                }
             }
-        }
-    }
 
     update_recv_window(socket);
 }
@@ -226,7 +227,7 @@ TCPPacket handle_packet_fin_wait_1(Socket socket, TCPPacket packet, char* src_ip
         }
         return ack_for_fin;
     }
-
+    
     return NULL;
 }
 

@@ -8,23 +8,24 @@
 
 // Unique identifier of a socket object.
 typedef struct {
-    int src_port, dst_port;
-    char* src_ip, *dst_ip;
+	int id; // positive unique, or -1
+	int src_port, dst_port;
+	char* src_ip, *dst_ip;
 } * SocketID;
 
 #define ILLEGAL_SOCKET_ID -1
 
 // All possible error codes.
 typedef enum {
-    SUCCESS
+	SUCCESS
 } Status;
 
 /*
  * 	An (ip, port) tuple for representing destinations accross the network.
  */
 typedef struct {
-    char* addr;
-    int port;
+	char* addr;
+	int port;
 }* Address;
 
 
@@ -45,7 +46,6 @@ Status SocketClose(SocketID sockid);
  */
 Status SocketBind(SocketID sockid, Address addrport);
 
-
 /*
  * Instructs TCP protocol to listen for connections on given socket.
  * Parameter queueLimit - the maximum number of listenable connections.
@@ -56,7 +56,8 @@ Status SocketListen(SocketID sockid, int queueLimit);
  * Establishes a connection with a remote socket (blocking).
  * Parameter foreignAddr - the remote (ip, port) to connect to. 
  */
-Status SocketConnect(SocketID sockid, Address foreignAddr);
+Status SocketConnect(SocketID sockid, Address foreignAddr); // TODO: in our implementation one has to bind before connecting (so we don't randomize client port)
+															// distinct (by enum) a socket bound+LISTEN and a socket bound+nothing.
 
 /*
  * Gets a new socket for an incoming client connection.

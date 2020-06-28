@@ -26,12 +26,12 @@ char* tcp_to_str(TCPPacket packet);
 
 /**
  * Prints a log-style representation of a packet to stdout (For debugging).
- */
+ */ 
 void print_tcp_packet(TCPPacket packet);
 
 /**
  * (for now, a simplified) checksum calculation
- */
+ */ 
 int calc_checksum(Socket socket, TCPPacket packet);
 
 /**
