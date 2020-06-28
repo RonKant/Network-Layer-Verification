@@ -96,13 +96,14 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip) {
     int my_seq = rand();
     socket->seq_of_first_send_window = my_seq;
 
-    Socket new_conn = create_new_socket(); // TODO - maybe create with key built in so no need to call update in line 98 ish
+    Socket new_conn = create_new_socket();
 
     if (new_conn == NULL) {
         return generate_rst_packet(socket);
     }
 
-    update_socket_id(new_conn->id, src_ip, packet->src_port); // TODO: this should update Tomer's dictionary key
+    update_socket_id(new_conn->id, socket->id->src_ip, socket->id->src_port, src_ip, packet->src_port); // TODO: this should update Tomer's dictionary key
+                                                                                                        // TODO: also check return value (this pair might already exist)
     new_conn->state = SYN_RECEIVED;
     new_conn->seq_of_first_recv_window = packet->seq_num+1;
 
