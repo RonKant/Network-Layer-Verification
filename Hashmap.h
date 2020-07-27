@@ -6,29 +6,45 @@
 #define PROJECT_HASHMAP_H
 
 #include <stdbool.h>
-
+#include "util_types.h"
 
 typedef struct Node_t *Node;
 
-typedef struct Key_t *Key;
+//typedef struct Key_t *Key;
 
 typedef struct HashMap_t *HashMap;
 
-typedef void *Socket;
+typedef enum {
+    HASH_MAP_SUCCESS,
+    HASH_MAP_ALLOCATION_FAIL,
+    HASH_MAP_NULL_ARGUMENT,
+    HASH_MAP_KEY_EXIST,
+    HASH_MAP_SOCKET_NOT_FOUND,
+    HASH_MAP_ERROR
+} HashMapErrors;
 
-typedef Socket (*socketCopy)(Socket);
-typedef void (*freeSocket)(Socket);
-typedef bool (*compareSocket)(Socket,Socket);
+typedef bool (*compareSocket)(Socket,Socket,HashMapErrors *error);
+typedef HashMapErrors (*freeSocket)(Socket);
+typedef Socket (*copySocket)(Socket,HashMapErrors *error);
 
-typedef Key (*copyKey)(Key);
-typedef void (*freeKey)(Key);
-typedef bool (*compareKey)(Key,Key);
+bool socketCompare(Socket,Socket,HashMapErrors *error);
+Socket socketCopy(Socket socket,HashMapErrors *error);
+HashMapErrors socketFree(Socket socket);
 
-HashMap createHashMap(int size,socketCopy,freeSocket,compareSocket,copyKey,freeKey,compareKey);
-int hashCode(HashMap hashMap, Key key);
-void insertSocket(HashMap hashMap,Key key,Socket socket);
-Socket getSocket(HashMap hashMap,Key key);
-void hashmapRemove(HashMap hashMap, Key key);
-void hashDestroy(HashMap hashMap);
+typedef SocketID (*copyKey)(SocketID,HashMapErrors *error);
+typedef HashMapErrors (*freeKey)(SocketID);
+typedef bool (*compareKey)(SocketID ,SocketID);
 
+bool compareKeys(SocketID key1,SocketID key2);
+SocketID copyKeyFunction(SocketID key,HashMapErrors *error);
+HashMapErrors keyFree(SocketID);
+
+HashMap createHashMap(int size);
+int hashCode(HashMap hashMap, SocketID key);
+HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket);
+Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error);
+void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error);
+void hashDestroy(HashMap hashMap, HashMapErrors *error);
+int getHashMapSize(HashMap hashMap);
+int getHashMapNumberOfSockets(HashMap hashMap);
 #endif //PROJECT_HASHMAP_H
