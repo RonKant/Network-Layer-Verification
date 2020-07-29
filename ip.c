@@ -27,8 +27,7 @@ IPPacket str_to_ip(char* s) {
         free(result);
         return NULL;
     }
-    int data_offset = result->flags_and_offset%265;
-    char* s_data = s + (data_offset * 32);
+    char* s_data = s + (result->ihl * 32);      //s_data is the pointer of the data section in s. ihl is the length of the header
     result->data = (char*)malloc(strlen(s_data) + 1);
 
     if (result -> data == NULL) {
@@ -43,10 +42,8 @@ IPPacket str_to_ip(char* s) {
 
 char* ip_to_str(IPPacket packet) {
 
-    int data_offset = packet->flags_and_offset%265;
-    int header_size = data_offset * 32;
-
-    char* result = (char*) calloc(header_size + strlen(packet->data) + 1, sizeof(char));
+    int length_of_msg = packet->total_length*4;
+    char* result = (char*) calloc(length_of_msg, sizeof(char));
 
     if (result == NULL) {
         return NULL;
@@ -69,45 +66,17 @@ char* ip_to_str(IPPacket packet) {
         free(result);
         return NULL;
     }
-
-    strcat(result + header_size, packet->data);
+    int header_size = packet->ihl * 32;
+    strcat(result + header_size, packet->data);//result+header_size = the begining of the data section
 
     return result;
-}
-/*
-void create_key(char* s, HashMap hash_map){
-    IPPacket ip = str_to_ip(s);
-    TCPPacket tcp = str_to_tcp(ip-> data);
-    SocketID s_id = (SocketID)malloc(sizeof(*s_id));
-    s_id->src_ip = ip->src_ip;
-    s_id->dst_ip = ip->dst_ip;
-    s_id->dst_port = tcp->dst_port;
-    s_id->src_port = tcp->src_port;
-    //SocketID s_id = SocketID(tcp->src_port,tcp->dst_port,ip->src_ip,src->dst_ip );
-}
-*/
-
-
-bool is_contain_full(Key key, HashMap hash_map,char* data){
-    Socket s = getSocket(hash_map,key);
-    if (s==NULL || s->state == CLOSED){
-        return false;
-    }
-    pack_data(s,data,1);
-    return true;
-}
-
-bool is_contain_half(Key key, HashMap hash_map,char* data){
-    Socket s = getSocket(hash_map,key);
-    if (s==NULL || s->state != LISTEN){
-        return false;
-    }
-    pack_data(s,data,0);
-    return true;
 }
 
 bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst){
     IPPacket packet = (IPPacket)malloc(sizeof(*packet));
+    if (packet == NULL)
+        return false;
+    //create the packet
     packet->data = tcp_as_str;
     packet->version=0, packet->ihl=0, packet->dscp_and_ecn=0;
     packet->total_length=0;
@@ -116,10 +85,16 @@ bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst){
     packet->src_ip = socket->id->src_ip;
     packet->dst_ip = ip_dst;
 
+    //write to file that supposes to simulate
     FILE *fp;
-    fp = fopen(ip_dst, "w+");
+    fp = fopen(ip_dst, "w+"); //"sending" the packet to ip_dst
+    if (fp == NULL){
+        free(packet);
+        return false;
+    }
     fprintf(fp, ip_to_str(packet));
     fclose(fp);
+    free(packet);
     return true;
 
 
@@ -128,6 +103,8 @@ bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst){
 Key getKeyFromIPpacket(IPPacket packet){
     TCPPacket tcp_packet = str_to_tcp(packet->data);
     Key key = (Key)malloc(sizeof(*key));
+    if (key == NULL)
+        return NULL;
 
     key->localPort = tcp_packet->src_port;
     key->remotePort = tcp_packet->dst_port;
@@ -140,8 +117,10 @@ Key getKeyFromIPpacket(IPPacket packet){
 }
 
 bool handle_ip_message(char* ip_header, HashMap hashMap){
-    IPPacket ip_packet = str_to_ip(ip_header);
-    Key key = getKeyFromIPpacket(ip_packet);
+    IPPacket ip_packet = str_to_ip(ip_header);  //translate the string to a packet
+    Key key = getKeyFromIPpacket(ip_packet);//finding the right key in the hash map that suit to the packet
+    if (key == NULL)
+        return false;
     Socket socket = getSocket(hashMap, key);
     free(key);
     if (socket==NULL)
@@ -149,7 +128,7 @@ bool handle_ip_message(char* ip_header, HashMap hashMap){
 
     TCPPacket after_handle_packet = handle_packet(socket,str_to_tcp(ip_packet->data),ip_packet->src_ip);
     if (after_handle_packet!=NULL){
-        send_packet(socket,ip_packet->data,ip_packet->dst_ip);
+        return send_packet(socket,ip_packet->data,ip_packet->dst_ip);
     }
 
     return true;
