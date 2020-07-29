@@ -31,8 +31,28 @@ typedef struct {
 } * IPPacket;
 
 /**
+ * Converts a string representation into a ip packet struct (allocated).
+ * returns NULL on error.
+ */
+IPPacket str_to_ip(char* s);
+
+/**
+ * Converts a ip packet objet to an allocated string representation
+ * returns NULL on error.
+ */
+char* ip_to_str(IPPacket packet);
+
+/**
  * Sends a packet immediately (skips/after window mechanism)
  */
 bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst);
+
+/**
+ *
+ * @param ip_header -
+ * @param hashMap
+ * @return true if send the packet, false if fail
+ */
+bool handle_ip_message(char* ip_header, HashMap hashMap);
 
 #endif //CODE_IP_H
