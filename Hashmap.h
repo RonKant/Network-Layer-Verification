@@ -30,7 +30,7 @@ typedef Key (*copyKey)(Key);
 typedef void (*freeKey)(Key);
 typedef bool (*compareKey)(Key,Key);
 
-//HashMap createHashMap(int size,socketCopy,freeSocket,compareSocket,copyKey,freeKey,compareKey);
+HashMap createHashMap(int size);
 int hashCode(HashMap hashMap, Key key);
 void insertSocket(HashMap hashMap,Key key,Socket socket);
 Socket getSocket(HashMap hashMap,Key key);

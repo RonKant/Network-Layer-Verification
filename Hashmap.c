@@ -39,20 +39,19 @@ Key copyKeyFunction(Key key){
     strcpy(new->remoteIp,key->remoteIp);
     return new;
 }
-HashMap createHashMap(int size,socketCopy socketCopyFunction,freeSocket freeSocketFuncition ,compareSocket compareSocketFunction
-        ,copyKey copyKeyFunction,freeKey freeKeyFunction,compareKey compareKeyFunction){
+HashMap createHashMap(int size){ // mock: replace with ido files
     HashMap hashMap = malloc(sizeof(*hashMap));
-    hashMap->size=size;
-    hashMap->table = malloc(sizeof(hashMap->table)*size);
-    for(int i=0; i<size; i++){
-        hashMap->table[i] = NULL;
-    }
-    hashMap->socketCopyFunction=socketCopyFunction;
-    hashMap->freeSocketFuncition=freeSocketFuncition;
-    hashMap->compareKeyFunction=compareKeyFunction;
-    hashMap->compareKeyFunction =compareKeyFunction;
-    hashMap->copyKeyFunction=copyKeyFunction;
-    hashMap->freeKeyFunction=freeKeyFunction;
+    // hashMap->size=size;
+    // hashMap->table = malloc(sizeof(hashMap->table)*size);
+    // for(int i=0; i<size; i++){
+    //     hashMap->table[i] = NULL;
+    // }
+    // hashMap->socketCopyFunction=socketCopyFunction;
+    // hashMap->freeSocketFuncition=freeSocketFuncition;
+    // hashMap->compareKeyFunction=compareKeyFunction;
+    // hashMap->compareKeyFunction =compareKeyFunction;
+    // hashMap->copyKeyFunction=copyKeyFunction;
+    // hashMap->freeKeyFunction=freeKeyFunction;
     return hashMap;
 }
 int hashCode(HashMap hashMap, Key key){
