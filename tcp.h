@@ -1,5 +1,5 @@
-#ifndef __TCP_H__
-#define __TCP_H__
+#ifndef TCP_H__
+#define TCP_H__
 
 /*
  * This file is for everything related to parsing TCP requests
@@ -44,4 +44,4 @@ TCPPacket construct_ack_packet(Socket socket);
  */
 void destroyPacket(TCPPacket packet);
 
-#endif
+#endif // TCP_H__
