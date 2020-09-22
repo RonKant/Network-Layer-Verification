@@ -2,6 +2,7 @@
 #define __UTIL_TYPES_H__
 
 #include <stdbool.h>
+#include <time.h>
 
 #include "byte_queue.h"
 #include "network.h"
