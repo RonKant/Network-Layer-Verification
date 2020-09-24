@@ -12,6 +12,7 @@
 //#include "seahorn/seahorn.h"
 int offset = 0;
 unsigned int global_size;
+
 struct Node_t{
     SocketID key;
     Socket socket;
@@ -51,11 +52,12 @@ void* xmalloc(size_t sz){
     //assume(p>0);
     return p;
 }
-/*
+
 struct HashMap_t{
     int size;
     int number_of_sockets;
     Node* table;
+    Node iterator;
     copySocket socketCopyFunction;
     freeSocket freeSocketFuncition;
     compareSocket compareSocketFunction;
@@ -172,6 +174,7 @@ HashMap createHashMap(int size){
     hashMap->copyKeyFunction=copyKeyFunction;
     hashMap->freeKeyFunction=keyFree;
     hashMap->number_of_sockets = 0;
+    hashMap->iterator = NULL;
     return hashMap;
 }
 int hashCode(HashMap hashMap, SocketID key){
@@ -225,6 +228,32 @@ Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
     *error = HASH_MAP_SOCKET_NOT_FOUND;
     return NULL;
 }
+void hashMapSetFirst(HashMap hashMap){
+    if(hashMap == NULL || hashMap->size == 0)
+        return;
+    hashMap->iterator = hashMap->table[0];
+}
+bool hashMapHasNext(HashMap hashMap){
+    return hashMap->iterator->next == NULL;
+}
+Socket hashMapGetNext(HashMap hashMap){
+    if(hashMap == NULL || hashMap->size == 0)
+        return NULL;
+    if(hashMap->size == 1){
+        return socketCopy(hashMap->iterator->socket,NULL);
+    }
+    else{
+        // if the list where the node ends is done than we need the next list
+        if(!hashMapHasNext(hashMap)){
+            int index_in_table = hashCode(hashMap,hashMap->iterator->key);
+            return socketCopy(hashMap->table[(index_in_table+1)%hashMap->size]->socket,NULL);
+        }
+        else{
+            return socketCopy(hashMap->iterator->next->socket,NULL);
+        }
+    }
+}
+
 void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
     if (hashMap == NULL || key == NULL) {
         *error = HASH_MAP_NULL_ARGUMENT;
@@ -236,6 +265,22 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
     if (!tmp) {
         *error = HASH_MAP_SOCKET_NOT_FOUND;
         return; //the list is empty
+    }
+    //if iterator points to the element we remove
+    if(compareKeys(key,hashMap->iterator->key)){
+        if(hashMap->size == 1){
+            hashMap->iterator = NULL;
+        }
+        else{
+            // if the list where the node ends is done than we need the next list
+            if(!hashMapHasNext(hashMap)){
+                int index_in_table = hashCode(hashMap,hashMap->iterator->key);
+                hashMap->iterator = hashMap->table[(index_in_table+1)%hashMap->size];
+            }
+            else{
+                hashMap->iterator = hashMap->iterator->next;
+            }
+        }
     }
     if (tmp->next == NULL) {
         if (hashMap->compareKeyFunction(key, tmp->key))//one element in the posList
@@ -304,7 +349,7 @@ int getHashMapSize(HashMap hashMap){
 }
 int getHashMapNumberOfSockets(HashMap hashMap){
     return hashMap->number_of_sockets;
-}*/
+}
 
 
 

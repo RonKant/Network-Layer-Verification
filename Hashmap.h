@@ -49,6 +49,10 @@ void hashDestroy(HashMap hashMap, HashMapErrors *error);
 int getHashMapSize(HashMap hashMap);
 int getHashMapNumberOfSockets(HashMap hashMap);
 
+void hashMapSetFirst(HashMap hashMap);
+Socket hashMapGetNext(HashMap hashMap);
+bool hashMapHasNext(HashMap hashMap);
+
 void* xmalloc(size_t sz);
 int strcmp_t(char* str1,char* str2);
 char* strcpy_t(char* dest, char* source);
