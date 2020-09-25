@@ -16,14 +16,12 @@ typedef struct {
     HashMap sockets; // holds all active "clients" which are using this IP
 
     // Used for communication with clients / other managers:
-    char* out_packet_fifo_name; // always named vnetwork_out_packets_<my_ip>.
-                                // packets received here will be sent.
-
     char* in_packet_fifo_name;  // always named vnetwork_in_packets_<my_ip>.
                                 // packets received here will be returned to listening clients.
 
     char* bind_request_fifo_name;   // always named vnetwork_bind_requests_<my_ip>.
     char* connect_request_fifo_name; // always named vnetwork_connect_requests_<my_ip>.
+    char* terminate_fifo_name; // when something goes here - terminate loop.
 }* NetworkManager;
 
 /**
