@@ -19,6 +19,41 @@
 
 #define MAX_HANDLES_PER_EPOCH 10
 
+const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%08s%08s%";
+
+// Use tomer's version in ip.c later
+IPPacket str_to_ip(char* s) {
+    IPPacket result = (IPPacket)malloc(sizeof(*result));
+    int scanned = sscanf(s, ip_str_repr,
+                         &(result->version),
+                         &(result->ihl),
+                         &(result->dscp_and_ecn),
+                         &(result->total_length),
+                         &(result->id),
+                         &(result->flags_and_offset),
+                         &(result->ttl),
+                         &(result->protocol),
+                         &(result->header_checksum),
+                         &(result->src_ip),
+                         &(result->dst_ip));
+
+    if (scanned != 11) { // if scan failed -- error
+        free(result);
+        return NULL;
+    }
+    char* s_data = s + (result->ihl * 32);      //s_data is the pointer of the data section in s. ihl is the length of the header
+    result->data = (char*)malloc(strlen(s_data) + 1);
+
+    if (result -> data == NULL) {
+        free(result);
+        return NULL;
+    }
+
+    strcpy(result->data, s_data);
+
+    return result;
+}
+
 /******************************************
  * Utility Functions For fifo creation
  * ****************************************/
@@ -193,30 +228,44 @@ IPPacket read_ip_packet_from_stream(int out_packet_fd, char version, char header
     return packet;
 }
 
+int handle_incoming_ip_packet(IPPacket packet) {
+    // if not meant for self - decrease TTL, maybe discard, maybe send onward.
+
+    // otherwise, check other IP fields, then strip IP header, check tcp header.
+
+    // if socket destination exists - pass the message to socket anc handle with already existing functions.
+    // otherwise - ? (discard? send something back?)
+    return 0; // mock
+}
+
+int send_string(char* data_to_send) {
+    return 0; //mock
+}
+
 /******************************************
  * Stages of manager loop
  * ****************************************/
 
 /**
- * Goes over the outgoing packets, sending them to their destinations.
+ * Goes over the incoming packets, handling them with the corresponding sockets.
  * 0 on success, otherwise - failure.
  */
-int handle_out_packets_fifo(NetworkManager manager) {
-    char* fifo_name = manager->out_packet_fifo_name;
+int handle_in_packets_fifo(NetworkManager manager) {
+    char* fifo_name = manager->in_packet_fifo_name;
     if (fifo_name == NULL) {
         printf("Error: outgoing packets fifo is NULL.\n");
         return -1;
     }
 
-    int out_packet_fd = open(fifo_name, O_RDONLY);
-    if (out_packet_fd == -1) {
+    int in_packet_fd = open(fifo_name, O_RDONLY);
+    if (in_packet_fd == -1) {
         printf("Error: failed to open outgoing packets fifo (path: %s).\n", fifo_name);
         return -1;
     }
 
     for (int i = 0; i < MAX_HANDLES_PER_EPOCH; ++i) {
         char version_and_header_size[1];
-        int read_result = read_entire_message(out_packet_fd, version_and_header_size, 1);
+        int read_result = read_entire_message(in_packet_fd, version_and_header_size, 1);
 
         if (read_result == -1) {
             printf("Error while trying to read packet from outgoing fifo.\n");
@@ -229,21 +278,32 @@ int handle_out_packets_fifo(NetworkManager manager) {
         char version = (version_and_header_size[1] >> 4);
         char header_size = (version_and_header_size[1] << 4) >> 4;
 
-        IPPacket packet = read_ip_packet_from_stream(out_packet_fd, version, header_size);
+        IPPacket packet = read_ip_packet_from_stream(in_packet_fd, version, header_size);
         if (packet == NULL) {
             return -1;
         }
 
-        handle_ip_pakcet(packet);
+        if (handle_incoming_ip_packet(packet) != 0) {
+            printf("Error sending packet.\n");
+            free(packet);
+            return -1;
+        }
         
         free(packet);
     }
 
-    if (close(out_packet_fd) != 0) {
+    if (close(in_packet_fd) != 0) {
         printf("Failed to close outgoing packets fifo.\n");
         return -1;
     }
     return 0;
+}
+
+/**
+ * Go over outgoing messages (not packets) fifo and send each to it's target.
+ */
+int handle_out_requests_fifo(NetworkManager manager) {
+    return 0; // mock
 }
 
 /******************************************
@@ -302,17 +362,20 @@ void destroyNetworkManager(NetworkManager manager) {
 
 int managerLoop(NetworkManager manager) { 
     while (1) {
-        if (handle_out_packets_fifo(manager) != 0) {
-            return -1;
-        }
-
-        // go over in_message fifo, pass messages to own clients
-
+        
         // go over bind requests fifo, handle them
 
         // go over connect requests fifo, handle them
+        
+        if (handle_in_packets_fifo(manager) != 0) {
+            return -1;
+        }
 
+
+        // go over socket hashmap, for every socket check out fifo, send message to destination.
+        // this ^ should probably combine in the same iteration loop with V.
         // go over socket hasmap, for every socket check request fifo, handle them
+        // also, for every socket who has not received ack - try to resend message if enough time passed
     }
 }
 
