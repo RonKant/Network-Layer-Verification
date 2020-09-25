@@ -9,6 +9,7 @@
 #include "util_types.h"
 #include "tcp.h"
 #include "packet_handlers.h"
+#include "socket.h"
 
 /*
  * This file is for everything related to parsing IP requests
