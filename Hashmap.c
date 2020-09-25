@@ -241,20 +241,24 @@ void hashMapSetFirst(HashMap hashMap){
 bool hashMapHasNext(HashMap hashMap){
     return hashMap->iterator->next == NULL;
 }
-Socket hashMapGetNext(HashMap hashMap){
+SocketID hashMapGetNext(HashMap hashMap){
     if(hashMap == NULL || hashMap->size == 0)
         return NULL;
     if(hashMap->size == 1){
-        return socketCopy(hashMap->iterator->socket,NULL);
+        return (hashMap->iterator->key);
     }
     else{
         // if the list where the node ends is done than we need the next list
         if(!hashMapHasNext(hashMap)){
             int index_in_table = hashCode(hashMap,hashMap->iterator->key);
-            return socketCopy(hashMap->table[(index_in_table+1)%hashMap->size]->socket,NULL);
+            if (index_in_table == hashMap->size - 1) {
+                // reached end of iteration
+                return NULL;
+            }
+            return (hashMap->table[(index_in_table+1)%hashMap->size]->key);
         }
         else{
-            return socketCopy(hashMap->iterator->next->socket,NULL);
+            return (hashMap->iterator->next->key);
         }
     }
 }

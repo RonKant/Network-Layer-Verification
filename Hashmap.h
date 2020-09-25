@@ -50,8 +50,12 @@ int getHashMapSize(HashMap hashMap);
 int getHashMapNumberOfSockets(HashMap hashMap);
 
 void hashMapSetFirst(HashMap hashMap);
-Socket hashMapGetNext(HashMap hashMap);
-bool hashMapHasNext(HashMap hashMap);
+SocketID hashMapGetNext(HashMap hashMap);
+
+#define HASH_MAP_FOREACH(sock_id, hashmap) \
+    for (SocketID sock_id = hashMapGetSetFirst(hashmap); \
+        sock_id != NULL; \
+        sock_id = hashMapGetNext(hashmap))
 
 void* xmalloc(size_t sz);
 int strcmp_t(char* str1,char* str2);
