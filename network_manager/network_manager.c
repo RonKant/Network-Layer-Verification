@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <errno.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -54,22 +55,39 @@ IPPacket str_to_ip(char* s) {
 
 
 int initialize_network_manager_fifos(NetworkManager manager) {
-    manager->terminate_fifo_name = get_terminate_fifo_name(manager->ip);
-    manager->in_packet_fifo_name = get_in_packet_fifo_name(manager->ip);
-    manager->bind_request_fifo_name = get_bind_requests_fifo_name(manager->ip);
-    manager->connect_request_fifo_name = get_connect_requests_fifo_name(manager->ip);
+    char* terminate_fifo_name = get_terminate_fifo_name(manager->ip);
+    char* in_packet_fifo_name = get_in_packet_fifo_name(manager->ip);
+    char* bind_request_fifo_name = get_bind_requests_fifo_name(manager->ip);
+    char* connect_request_fifo_name = get_connect_requests_fifo_name(manager->ip);
 
-    if (manager->terminate_fifo_name == NULL
-        || manager->in_packet_fifo_name == NULL
-        || manager->in_packet_fifo_name == NULL
-        || manager->connect_request_fifo_name == NULL) {
+    if (terminate_fifo_name == NULL
+        || in_packet_fifo_name == NULL
+        || in_packet_fifo_name == NULL
+        || connect_request_fifo_name == NULL) {
+            printf("Failed to extract fifo names for manager.\n");
             return -1;
         }
-    if (mkfifo(manager->terminate_fifo_name, DEFAULT_FIFO_MODE) != 0
-        || mkfifo(manager->in_packet_fifo_name, DEFAULT_FIFO_MODE) != 0
-        || mkfifo(manager->bind_request_fifo_name, DEFAULT_FIFO_MODE) != 0
-        || mkfifo(manager->connect_request_fifo_name, DEFAULT_FIFO_MODE) != 0) {
+
+
+
+    if (mkfifo(terminate_fifo_name, DEFAULT_FIFO_MODE) != 0
+        || mkfifo(in_packet_fifo_name, DEFAULT_FIFO_MODE) != 0
+        || mkfifo(bind_request_fifo_name, DEFAULT_FIFO_MODE) != 0
+        || mkfifo(connect_request_fifo_name, DEFAULT_FIFO_MODE) != 0) {
             printf("Failed creating manager fifos (probably already exist).\n");
+            return -1;
+        }
+
+    manager->terminate_fifo_fd = open(terminate_fifo_name, O_RDONLY | O_NONBLOCK);
+    manager->in_packet_fifo_fd = open(in_packet_fifo_name, O_RDONLY | O_NONBLOCK);
+    manager->bind_request_fifo_fd = open(bind_request_fifo_name, O_RDONLY | O_NONBLOCK);
+    manager->connect_request_fifo_fd = open(connect_request_fifo_name, O_RDONLY | O_NONBLOCK);
+
+    if (manager->terminate_fifo_fd == -1
+        || manager->in_packet_fifo_fd == -1
+        || manager->bind_request_fifo_fd == -1
+        || manager->connect_request_fifo_fd == -1) {
+            printf("Failed to open fifos.\n");
             return -1;
         }
 
@@ -98,7 +116,9 @@ int read_entire_message(int fd, char* buf, int len) {
     }
 
     if (read_result == -1) {
+        if (errno == EAGAIN) return 0;
         printf("An error has occurred while reading from file.\n");
+        printf("\terrno: %d\n", errno);
         return -1;
     }
 
@@ -107,6 +127,7 @@ int read_entire_message(int fd, char* buf, int len) {
         
         read_result = read(fd, ((char*)buf) + len - bytes_left, bytes_left);
         if (read_result == -1) {
+            if (errno == EAGAIN) return 0;
             printf("An error has occurred while reading from file.\n");
             return -1;
         }
@@ -208,6 +229,86 @@ int send_string(char* data_to_send) {
 }
 
 /******************************************
+ * Utility Functions For termination
+ * ****************************************/
+
+/**
+ * Returns true if the manager has a pending temination order or if an error occurs.
+ * Returns false otherwise.
+ */
+bool should_terminate_manager(NetworkManager manager) {
+    int termination_fd = manager->terminate_fifo_fd;
+
+    bool should_terminate = false;
+    char buf[1];
+    int read_length = read_entire_message(termination_fd, buf, 1);
+
+    if (read_length == 1) {
+        should_terminate = true;
+    } else {
+        should_terminate = false;
+    }
+
+    return should_terminate;
+}
+
+
+/**
+ * destroys socket map and deletes fifos.
+ */
+void unlink_and_clean_manager(NetworkManager manager) {
+    hashDestroy(manager->sockets, NULL);
+    manager->sockets = NULL;
+
+    if (manager->terminate_fifo_fd != -1) close(manager->terminate_fifo_fd);
+    if (manager->in_packet_fifo_fd != -1) close(manager->terminate_fifo_fd);
+    if (manager->bind_request_fifo_fd != -1) close(manager->terminate_fifo_fd);
+    if (manager->connect_request_fifo_fd != -1) close(manager->terminate_fifo_fd);
+
+    char* terminate_fifo_name = get_terminate_fifo_name(manager->ip);
+    char* in_packet_fifo_name = get_in_packet_fifo_name(manager->ip);
+    char* bind_request_fifo_name = get_bind_requests_fifo_name(manager->ip);
+    char* connect_request_fifo_name = get_connect_requests_fifo_name(manager->ip);
+
+    if (terminate_fifo_name != NULL)
+        unlink(terminate_fifo_name);
+    if (in_packet_fifo_name != NULL)
+        unlink(in_packet_fifo_name);
+    if (bind_request_fifo_name != NULL)
+        unlink(bind_request_fifo_name);
+    if (connect_request_fifo_name != NULL)
+        unlink(connect_request_fifo_name);
+
+    if (terminate_fifo_name == NULL
+        || in_packet_fifo_name == NULL
+        || in_packet_fifo_name == NULL
+        || connect_request_fifo_name == NULL) {
+            printf("Failed to extract fifo names for manager (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
+        }
+}
+
+/**
+ * Sends termination messages to all connected sockets.
+ * Returns -1 if there were any problems, 0 on success.
+ */
+int terminate_manager(NetworkManager manager) {
+    // should also unlink fifos here so next time the manager comes up it's clean.
+    // also cleans hashMap.
+    if (NULL == manager || NULL == manager->sockets) {
+        return -1;
+    }
+
+    // HASH_MAP_FOREACH(sock_id, manager->sockets) {
+    //     // send termination signal to socket.
+    //     // unlink socket fifos. TODO
+    // }
+
+    unlink_and_clean_manager(manager);
+
+    return 0;
+}
+
+/******************************************
  * Stages of manager loop
  * ****************************************/
 
@@ -216,17 +317,7 @@ int send_string(char* data_to_send) {
  * 0 on success, otherwise - failure.
  */
 int handle_in_packets_fifo(NetworkManager manager) {
-    char* fifo_name = manager->in_packet_fifo_name;
-    if (fifo_name == NULL) {
-        printf("Error: outgoing packets fifo is NULL.\n");
-        return -1;
-    }
-
-    int in_packet_fd = open(fifo_name, O_RDONLY);
-    if (in_packet_fd == -1) {
-        printf("Error: failed to open outgoing packets fifo (path: %s).\n", fifo_name);
-        return -1;
-    }
+    int in_packet_fd = manager->in_packet_fifo_fd;
 
     for (int i = 0; i < MAX_HANDLES_PER_EPOCH; ++i) {
         char version_and_header_size[1];
@@ -257,10 +348,6 @@ int handle_in_packets_fifo(NetworkManager manager) {
         free(packet);
     }
 
-    if (close(in_packet_fd) != 0) {
-        printf("Failed to close outgoing packets fifo.\n");
-        return -1;
-    }
     return 0;
 }
 
@@ -293,24 +380,11 @@ NetworkManager createNetworkManager(const char* ip) {
     if (manager == NULL) return NULL;
 
     // so we can destroy them later if something fails.
-    manager->terminate_fifo_name = NULL;
-    manager->in_packet_fifo_name = NULL;
-    manager->bind_request_fifo_name = NULL;
-    manager->connect_request_fifo_name = NULL;
     manager->sockets = NULL;
 
     manager->ip = ip;
 
-    if (initialize_network_manager_fifos(manager) != 0) {
-            destroyNetworkManager(manager);
-            return NULL;
-        }
-
-    manager->sockets = createHashMap(MAX_SOCKETS);
-    if (manager->sockets == NULL) {
-        destroyNetworkManager(manager);
-        return NULL;
-    }
+    // fifo and hash map creation is done in manager loop.
     return manager;
 }
 
@@ -318,16 +392,8 @@ NetworkManager createNetworkManager(const char* ip) {
 void destroyNetworkManager(NetworkManager manager) {
     // should: free all memory in struct, unlink all fifos (?)
     // if clients exist - notify them about shutdown?
-    hashDestroy(manager->sockets, NULL);
-    unlink(manager->terminate_fifo_name);
-    unlink(manager->in_packet_fifo_name);
-    unlink(manager->bind_request_fifo_name);
-    unlink(manager->connect_request_fifo_name);
-
-    free(manager->terminate_fifo_name);
-    free(manager->in_packet_fifo_name);
-    free(manager->bind_request_fifo_name);
-    free(manager->connect_request_fifo_name);
+    // terminate here?
+    unlink_and_clean_manager(manager);
 
     free(manager);
 
@@ -335,9 +401,24 @@ void destroyNetworkManager(NetworkManager manager) {
 }
 
 int managerLoop(NetworkManager manager) { 
-    while (1) {
-        // check terminate fifo. If there is something: shut down (and free memory, notify clients, etc.)
+    if (manager->sockets != NULL) {
+        printf("Error: trying to call manager loop on an already running manager.\n");
+        return -1;
+    }
+    if (initialize_network_manager_fifos(manager) != 0) {
+        return -1;
+    }
+    manager->sockets = createHashMap(MAX_SOCKETS);
+    if (manager->sockets == NULL) {
+        return -1;
+    }
 
+    while (1) {
+        if (should_terminate_manager(manager)) {
+            printf("Terminating manager\n");
+            terminate_manager(manager);
+            return -1;
+        }
         // go over bind requests fifo, handle them
 
         // go over connect requests fifo, handle them
@@ -346,9 +427,13 @@ int managerLoop(NetworkManager manager) {
             return -1;
         }
 
-        HASH_MAP_FOREACH(sock_id, manager->sockets) {
-            handle_socket_in_network(sock_id, manager);
-        }
+        // currently broken because hashmap iterator does not work (because of badly initialized table entries)
+
+        // HASH_MAP_FOREACH(sock_id, manager->sockets) {
+        //     printf("---\n");
+        //     handle_socket_in_network(sock_id, manager);
+        // }
+
     }
 }
 

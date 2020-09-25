@@ -15,13 +15,18 @@ typedef struct {
     const char* ip; // the IP this component is in charge of
     HashMap sockets; // holds all active "clients" which are using this IP
 
-    // Used for communication with clients / other managers:
-    char* in_packet_fifo_name;  // always named vnetwork_in_packets_<my_ip>.
-                                // packets received here will be returned to listening clients.
+    // // Used for communication with clients / other managers:
+    // char* in_packet_fifo_name;  // always named vnetwork_in_packets_<my_ip>.
+    //                             // packets received here will be returned to listening clients.
 
-    char* bind_request_fifo_name;   // always named vnetwork_bind_requests_<my_ip>.
-    char* connect_request_fifo_name; // always named vnetwork_connect_requests_<my_ip>.
-    char* terminate_fifo_name; // when something goes here - terminate loop.
+    // char* bind_request_fifo_name;   // always named vnetwork_bind_requests_<my_ip>.
+    // char* connect_request_fifo_name; // always named vnetwork_connect_requests_<my_ip>.
+    // char* terminate_fifo_name; // when something goes here - terminate loop.
+
+    int in_packet_fifo_fd;
+    int bind_request_fifo_fd;
+    int connect_request_fifo_fd;
+    int terminate_fifo_fd;
 }* NetworkManager;
 
 /**

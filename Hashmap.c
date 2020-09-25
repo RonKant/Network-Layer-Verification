@@ -170,7 +170,7 @@ HashMap createHashMap(int size){
         offset = sizeof(*(hashMap->table))*i;
         sassert(offset < global_size); //PROBLEM
         sassert(offset>=0);
-        hashMap->table[i] = NULL;
+        (hashMap->table)[i] = NULL;
     }
     hashMap->compareSocketFunction =  socketCompare;
     hashMap->socketCopyFunction=socketCopy;
