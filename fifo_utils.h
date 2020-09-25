@@ -1,9 +1,16 @@
+#ifndef FIFO_UTILS_H
+#define FIFO_UTILS_H
+
 /**
  * This module contains functions for obtaining fifo names out of network manager IPs and SocketID obejcts.
  */
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "socket_utils.h"
+
+#define MAX_SOCKET_STRING_REPR_SIZE 80
 
 #define FIFO_FOLDER_PATH_PREFIX "/tmp/vnetwork_fifos/"
 
@@ -65,6 +72,11 @@ char* construct_full_fifo_name(const char* prefix, const char* s) {
     return result;
 }
 
+
+/******************************************
+ * Network manager fifos
+ *****************************************/
+
 char* get_terminate_fifo_name(const char* ip) {
     return construct_full_fifo_name(TERMINATE_FIFO_PREFIX, ip);
 }
@@ -80,3 +92,41 @@ char* get_bind_requests_fifo_name(const char* ip) {
 char* get_connect_requests_fifo_name(const char* ip) {
     return construct_full_fifo_name(CONNECT_REQUEST_FIFO_PREFIX, ip);
 }
+
+/******************************************
+ * Socket fifos
+ *****************************************/
+
+/**
+ * Allocates and returns a string representation of a CONNECTED socket.
+ * Returns null on failure.
+ */
+char* get_connected_socket_repr_string(SocketID sock_id) {
+    if (sock_id == NULL || get_socket_state(sock_id) != CONNECTED_SOCKET) return NULL;
+
+    char* result = (char*)malloc(sizeof(*result) * MAX_SOCKET_STRING_REPR_SIZE);
+    if (sprintf(result, "%s_%d_%s_%d", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port) < 0) {
+        free(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+/**
+ * Allocates and returns a string representation of a BOUND ONLY socket.
+ * Returns null on failure.
+ */
+char* get_bound_socket_repr_string(SocketID sock_id) {
+    if (sock_id == NULL || get_socket_state(sock_id) != BOUND_ONLY_SOCKET) return NULL;
+
+    char* result = (char*)malloc(sizeof(*result) * MAX_SOCKET_STRING_REPR_SIZE);
+    if (sprintf(result, "%s_%d_BOUND", sock_id->src_ip, sock_id->src_port) < 0) {
+        free(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+#endif

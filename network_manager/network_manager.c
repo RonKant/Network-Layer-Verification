@@ -109,6 +109,12 @@ int read_entire_message(int fd, char* buf, int len) {
         printf("Invalid length provided - must be non-negative.\n");
         return -1;
     }
+
+    if (NULL == buf) {
+        printf("Invalid (NULL) buffer provided.\n");
+        return -1;
+    }
+
     int bytes_left = len;
     int read_result = read(fd, buf, len);
     if (read_result == 0) {
@@ -136,6 +142,35 @@ int read_entire_message(int fd, char* buf, int len) {
     }
 
     return len;
+}
+
+/**
+ * Reads a string from fd to buf, until stop is encountered (including it).
+ * Returns length of message read, or 0 if buf is empty, or -1 on error.
+ */
+int read_message_until_char(int fd, char* buf, char stop) {
+    if (NULL == buf) {
+        printf("Invalid (NULL) buffer provided.\n");
+        return -1;
+    }
+
+    char* current_end = buf;
+    char current_char;
+    int read_value;
+
+    while ((read_value = read(fd, &current_char, 1)) > 0) {
+        *current_end = current_char;
+        current_end++;
+        if (current_char == stop) break;
+    }
+
+
+    if (current_char != stop) { // loop finished because EOF
+        printf("Error: early EOF unexpected while reading from file.\n");
+        return -1;
+    }
+
+    return current_end - buf;
 }
 
 /**
@@ -358,6 +393,11 @@ int handle_out_requests_fifo(NetworkManager manager) {
     return 0; // mock
 }
 
+
+int handle_bind_fifo(NetworkManager manager) {
+    return 0; // mock
+}
+
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     /*
     * Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
@@ -419,7 +459,10 @@ int managerLoop(NetworkManager manager) {
             terminate_manager(manager);
             return -1;
         }
-        // go over bind requests fifo, handle them
+
+        if (handle_bind_fifo(manager) != 0) {
+            return -1;
+        }
 
         // go over connect requests fifo, handle them
         
@@ -437,4 +480,4 @@ int managerLoop(NetworkManager manager) {
     }
 }
 
-int stopManager(char* ip);
+// int stopManager(char* ip);
