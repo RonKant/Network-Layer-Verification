@@ -9,6 +9,11 @@
 #include <stdint.h>
 #include "network.h"
 #include "util_types.h"
+
+
+#define sassert(X) ;
+#define assume(X) ;
+
 //#include "seahorn/seahorn.h"
 int offset = 0;
 unsigned int global_size;
@@ -325,15 +330,14 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
 void hashDestroy(HashMap hashMap, HashMapErrors *error){
     if(!hashMap)
     {
-        *error = HASH_MAP_NULL_ARGUMENT;
+        if (error) *error = HASH_MAP_NULL_ARGUMENT;
         return;
     }
-    HashMapErrors *err = NULL;
     for(int i=0; i<hashMap->size;i++){
         Node tmp= hashMap->table[i];
         while(tmp){
             hashmapRemove(hashMap,tmp->key,error);
-            if(*error != HASH_MAP_SUCCESS) {
+            if((error) && (*error != HASH_MAP_SUCCESS)) {
                 *error = HASH_MAP_ERROR;
                 return;
             }
@@ -342,7 +346,7 @@ void hashDestroy(HashMap hashMap, HashMapErrors *error){
     }
     free(hashMap->table);
     free(hashMap);
-    *error = HASH_MAP_SUCCESS;
+    if (error) *error = HASH_MAP_SUCCESS;
 }
 int getHashMapSize(HashMap hashMap){
     return hashMap->size;
