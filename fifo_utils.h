@@ -68,8 +68,9 @@ char* add_as_prefix(const char* prefix, const char* s) {
 char* construct_full_fifo_name(const char* prefix, const char* s) {
     char* result = add_as_prefix(prefix, s);
     if (NULL == result) return NULL;
-    result = add_folder_prefix(result);
-    return result;
+    char* result_with_folder = add_folder_prefix(result);
+    free(result);
+    return result_with_folder;
 }
 
 

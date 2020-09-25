@@ -12,7 +12,7 @@
  */
 
 typedef struct {
-    const char* ip; // the IP this component is in charge of
+    char* ip; // the IP this component is in charge of
     HashMap sockets; // holds all active "clients" which are using this IP
 
     // // Used for communication with clients / other managers:
@@ -33,7 +33,7 @@ typedef struct {
  * Allocates a new manager of given ip with empty dictionary of clients.
  * Returns NULL on failure.
  */
-NetworkManager createNetworkManager(const char* ip);
+NetworkManager createNetworkManager(char* ip);
 
 /**
  * De-allocates all memory+resources related to given manager.

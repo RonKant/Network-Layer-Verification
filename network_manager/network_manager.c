@@ -66,6 +66,7 @@ int initialize_network_manager_fifos(NetworkManager manager) {
         || in_packet_fifo_name == NULL
         || connect_request_fifo_name == NULL) {
             printf("Failed to extract fifo names for manager.\n");
+            free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
             return -1;
         }
 
@@ -76,6 +77,7 @@ int initialize_network_manager_fifos(NetworkManager manager) {
         || mkfifo(bind_request_fifo_name, DEFAULT_FIFO_MODE) != 0
         || mkfifo(connect_request_fifo_name, DEFAULT_FIFO_MODE) != 0) {
             printf("Failed creating manager fifos (probably already exist).\n");
+            free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
             return -1;
         }
 
@@ -83,6 +85,8 @@ int initialize_network_manager_fifos(NetworkManager manager) {
     manager->in_packet_fifo_fd = open(in_packet_fifo_name, O_RDONLY | O_NONBLOCK);
     manager->bind_request_fifo_fd = open(bind_request_fifo_name, O_RDONLY | O_NONBLOCK);
     manager->connect_request_fifo_fd = open(connect_request_fifo_name, O_RDONLY | O_NONBLOCK);
+
+    free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
 
     if (manager->terminate_fifo_fd == -1
         || manager->in_packet_fifo_fd == -1
@@ -330,6 +334,8 @@ void unlink_and_clean_manager(NetworkManager manager) {
         || connect_request_fifo_name == NULL) {
             printf("Failed to extract fifo names for manager (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
         }
+
+    free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
 }
 
 /**
@@ -427,6 +433,17 @@ int handle_bind_fifo(NetworkManager manager) {
 
     printf("\nBind Request:\n\tPort: %d.\n\tFrom: %d-%d.\n", port, pid, socket_counter);
 
+    SocketID sock_id = (SocketID)malloc(sizeof(*sock_id));
+    if (sock_id == NULL) return -1;
+
+    init_empty_socket(sock_id);
+    sock_id->src_ip = manager->ip;
+    sock_id->src_port = port;
+
+
+
+    free(sock_id);
+
     // check if can bind, bind, return result in matching fifo.
 
     return 0; // mock
@@ -447,7 +464,7 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
  * Interface
  * ****************************************/
 
-NetworkManager createNetworkManager(const char* ip) {
+NetworkManager createNetworkManager(char* ip) {
     if (init_fifo_directory() != 0) return NULL;
 
     NetworkManager manager = (NetworkManager)malloc(sizeof(*manager));
