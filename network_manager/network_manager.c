@@ -271,6 +271,17 @@ int handle_out_requests_fifo(NetworkManager manager) {
     return 0; // mock
 }
 
+int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
+    /*
+    * Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
+    * If socket is a listener and has a pending connection, and accept fifo is empty - put connection in accept fifo.
+    * Check socket out fifo for RAW USER STRINGS. If there is something: push into socket outgoing queue.
+    * Check end fifo. If there is something: close socket and free it's memory.
+    * Check socket out queue/buffer. If (condition) - resend packet of unacked data.
+    */
+    return 0; // mock
+}
+
 /******************************************
  * Interface
  * ****************************************/
@@ -333,14 +344,9 @@ int managerLoop(NetworkManager manager) {
             return -1;
         }
 
-        /*
-        iterate over socket hashmap. For every socket:
-            * Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
-            * If socket is a listener and has a pending connection, and accept fifo is empty - put connection in accept fifo.
-            * Check socket out fifo for RAW USER STRINGS. If there is something: push into socket outgoing queue.
-            * Check end fifo. If there is something: close socket and free it's memory.
-            * Check socket out queue/buffer. If (condition) - resend packet of unacked data.
-            */
+        HASH_MAP_FOREACH(sock_id, manager->sockets) {
+            handle_socket_in_network(sock_id, manager);
+        }
     }
 }
 

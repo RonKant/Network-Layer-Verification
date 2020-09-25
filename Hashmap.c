@@ -3,6 +3,7 @@
 //
 
 #include "Hashmap.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -232,6 +233,13 @@ Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
     }
     *error = HASH_MAP_SOCKET_NOT_FOUND;
     return NULL;
+}
+
+SocketID hashMapGetFirst(HashMap hashMap) {
+    assert(hashMap != NULL);
+    if (hashMap->size == 0) return NULL;
+    hashMap->iterator = hashMap->table[0];
+    return hashMap->iterator->key;
 }
 void hashMapSetFirst(HashMap hashMap){
     if(hashMap == NULL || hashMap->size == 0)

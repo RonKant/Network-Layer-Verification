@@ -49,11 +49,12 @@ void hashDestroy(HashMap hashMap, HashMapErrors *error);
 int getHashMapSize(HashMap hashMap);
 int getHashMapNumberOfSockets(HashMap hashMap);
 
+SocketID hashMapGetFirst(HashMap hashMap);
 void hashMapSetFirst(HashMap hashMap);
 SocketID hashMapGetNext(HashMap hashMap);
 
 #define HASH_MAP_FOREACH(sock_id, hashmap) \
-    for (SocketID sock_id = hashMapGetSetFirst(hashmap); \
+    for (SocketID sock_id = hashMapGetFirst(hashmap); \
         sock_id != NULL; \
         sock_id = hashMapGetNext(hashmap))
 
