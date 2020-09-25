@@ -346,7 +346,7 @@ void destroyNetworkManager(NetworkManager manager) {
     // should: free all memory in struct, unlink all fifos (?)
     // if clients exist - notify them about shutdown?
 
-    hashDestroy(manager->sockets);
+    hashDestroy(manager->sockets, NULL);
     unlink(manager->out_packet_fifo_name);
     unlink(manager->in_packet_fifo_name);
     unlink(manager->bind_request_fifo_name);
