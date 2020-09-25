@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FIFO_FOLDER_PATH_PREFIX "/tmp/vnetwork_fifos/"
+
 #define TERMINATE_FIFO_PREFIX "vnetwork_terminate_"
 #define IN_PACKET_FIFO_PREFIX "vnetwork_in_packets_"
 #define BIND_REQUEST_FIFO_PREFIX "vnetwork_bind_requests_"
@@ -17,6 +19,28 @@
 #define IN_DATA_SOCKET_FIFO_PREFIX "vnetwork_in_data_socket_read_"
 #define END_SOCKET_WRITE_FIFO_PREFIX "vnetwork_end_socket_write_"
 #define END_SOCKET_READ_FIFO_PREFIX "vnetwork_end_socket_read_"
+
+/**
+ * create the fifo directory if it does not exist yet.
+ */
+int init_fifo_directory() {
+    struct stat st = {0};
+    if (stat(FIFO_FOLDER_PATH_PREFIX, &st) == -1) {
+        return mkdir(FIFO_FOLDER_PATH_PREFIX, 0700);
+    }
+    return 0;
+}
+
+char* add_folder_prefix(const char* s) {
+    char* result = (char*)malloc(strlen(s) + strlen(FIFO_FOLDER_PATH_PREFIX) + 1);
+    if (result == NULL) return NULL;
+    result[0] = '\0';
+
+    result = strcat(result, FIFO_FOLDER_PATH_PREFIX);
+    result = strcat(result, s);
+
+    return result;
+}
 
 /**
  * Returns a new string, containing the concatenation of the two strings.
@@ -33,18 +57,26 @@ char* add_as_prefix(const char* prefix, const char* s) {
     return result;
 }
 
+// constructs a name with folder prefix
+char* construct_full_fifo_name(const char* prefix, const char* s) {
+    char* result = add_as_prefix(prefix, s);
+    if (NULL == result) return NULL;
+    result = add_folder_prefix(result);
+    return result;
+}
+
 char* get_terminate_fifo_name(const char* ip) {
-    return add_as_prefix(TERMINATE_FIFO_PREFIX, ip);
+    return construct_full_fifo_name(TERMINATE_FIFO_PREFIX, ip);
 }
 
 char* get_in_packet_fifo_name(const char* ip) {
-    return add_as_prefix(IN_PACKET_FIFO_PREFIX, ip);
+    return construct_full_fifo_name(IN_PACKET_FIFO_PREFIX, ip);
 }
 
 char* get_bind_requests_fifo_name(const char* ip) {
-    return add_as_prefix(BIND_REQUEST_FIFO_PREFIX, ip);
+    return construct_full_fifo_name(BIND_REQUEST_FIFO_PREFIX, ip);
 }
 
 char* get_connect_requests_fifo_name(const char* ip) {
-    return add_as_prefix(CONNECT_REQUEST_FIFO_PREFIX, ip);
+    return construct_full_fifo_name(CONNECT_REQUEST_FIFO_PREFIX, ip);
 }

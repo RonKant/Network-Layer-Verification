@@ -287,6 +287,8 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
  * ****************************************/
 
 NetworkManager createNetworkManager(const char* ip) {
+    if (init_fifo_directory() != 0) return NULL;
+
     NetworkManager manager = (NetworkManager)malloc(sizeof(*manager));
     if (manager == NULL) return NULL;
 
