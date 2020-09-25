@@ -38,6 +38,7 @@ SocketID SocketCreate();
 
 /*
  * Closes a given socket and it's current ongoing connection.
+ * Also destroys all memroy related to socket.
  */
 Status SocketClose(SocketID sockid);
 

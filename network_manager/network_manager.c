@@ -1,18 +1,12 @@
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h> // TODO: implement by ourselves
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "../fifo_utils.h"
 #include "../ip.h"
 #include "network_manager.h"
-
-#define TERMINATE_FIFO_PREFIX "vnetwork_terminate_"
-#define IN_PACKET_FIFO_PREFIX "vnetwork_in_packets_"
-#define BIND_REQUEST_FIFO_PREFIX "vnetwork_bind_requests_"
-#define CONNECT_REQUEST_FIFO_PREFIX "vnetwork_connect_requests_"
 
 #define MAX_SOCKETS 32768
 #define DEFAULT_FIFO_MODE 0666
@@ -58,36 +52,6 @@ IPPacket str_to_ip(char* s) {
  * Utility Functions For fifo creation
  * ****************************************/
 
-/**
- * Returns a new string, containing the concatenation of the two strings.
- * Used in translating ip/ports to fifo names.
- */
-char* add_as_prefix(const char* prefix, const char* s) {
-    char* result = (char*)malloc(strlen(s) + strlen(prefix) + 1);
-    if (result == NULL) return NULL;
-    result[0] = '\0';
-
-    result = strcat(result, prefix);
-    result = strcat(result, s);
-
-    return result;
-}
-
-char* get_terminate_fifo_name(const char* ip) {
-    return add_as_prefix(TERMINATE_FIFO_PREFIX, ip);
-}
-
-char* get_in_packet_fifo_name(const char* ip) {
-    return add_as_prefix(IN_PACKET_FIFO_PREFIX, ip);
-}
-
-char* get_bind_requests_fifo_name(const char* ip) {
-    return add_as_prefix(BIND_REQUEST_FIFO_PREFIX, ip);
-}
-
-char* get_connect_requests_fifo_name(const char* ip) {
-    return add_as_prefix(CONNECT_REQUEST_FIFO_PREFIX, ip);
-}
 
 int initialize_network_manager_fifos(NetworkManager manager) {
     manager->terminate_fifo_name = get_terminate_fifo_name(manager->ip);
