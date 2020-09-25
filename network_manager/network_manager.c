@@ -13,6 +13,7 @@
 #define DEFAULT_FIFO_MODE 0666
 
 #define MAX_HANDLES_PER_EPOCH 10
+#define MAX_BIND_REQUEST_SIZE 100
 
 const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%08s%08s%";
 
@@ -164,6 +165,15 @@ int read_message_until_char(int fd, char* buf, char stop) {
         if (current_char == stop) break;
     }
 
+    if (read_value < 0 && errno != EAGAIN) {
+        printf("Error while reading from file.\n");
+        printf("\terrno: %d.\n", errno);
+        return -1;
+    }
+
+    if (current_end - buf == 0) { // read nothing.
+        return 0;
+    }
 
     if (current_char != stop) { // loop finished because EOF
         printf("Error: early EOF unexpected while reading from file.\n");
@@ -395,6 +405,30 @@ int handle_out_requests_fifo(NetworkManager manager) {
 
 
 int handle_bind_fifo(NetworkManager manager) {
+
+    char bind_request[MAX_BIND_REQUEST_SIZE];
+    int read_len = read_message_until_char(manager->bind_request_fifo_fd, bind_request, '\0');
+
+    if (read_len < 0) {
+        printf("Error reading bind request.\n");
+        return -1;
+    }
+
+    if (read_len == 0) return 0; // no bind requests.
+
+    // bind_request now contains a full bind request of format:
+    // <port>_<pid>_<socket-counter>\0
+
+    int port, pid, socket_counter;
+    if (sscanf(bind_request, "%d_%d_%d", &port, &pid, &socket_counter) != 3) {
+        printf("Invalid bind request (ignored).\n");
+        return -1;
+    }
+
+    printf("\nBind Request:\n\tPort: %d.\n\tFrom: %d-%d.\n", port, pid, socket_counter);
+
+    // check if can bind, bind, return result in matching fifo.
+
     return 0; // mock
 }
 
