@@ -77,7 +77,7 @@ int initialize_network_manager_fifos(NetworkManager manager) {
         || mkfifo(in_packet_fifo_name, DEFAULT_FIFO_MODE) != 0
         || mkfifo(bind_request_fifo_name, DEFAULT_FIFO_MODE) != 0
         || mkfifo(connect_request_fifo_name, DEFAULT_FIFO_MODE) != 0) {
-            printf("Failed creating manager fifos (probably already exist).\n");
+            printf("Failed creating manager fifos (probably already exist - will try to delete them automatically).\n");
             free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
             return -1;
         }
@@ -361,14 +361,18 @@ int terminate_manager(NetworkManager manager) {
 }
 
 void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
+    printf("a.\n");
     Socket to_remove = getSocket(manager->sockets, sock_id, NULL);
+    printf("b.\n");
     if (NULL == to_remove) {
+        printf("c.\n");
         return; // nothing to destroy.
     }
 
     hashmapRemove(manager->sockets, sock_id, NULL);
-
-    destroy_socket(to_remove);
+    printf("d.\n");
+    //destroy_socket(to_remove); //this is done in hashmap remove (shouldn't TODO)
+    printf("e.\n");
 }
 
 /******************************************
@@ -464,7 +468,13 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     if (sock_id == NULL) return -1;
 
     init_empty_socket_id(sock_id);
-    sock_id->src_ip = manager->ip;
+    sock_id->src_ip = (char*)malloc(sizeof(char) * strlen(manager->ip) + 1); // TODO: change to our strlen.
+    if (sock_id->src_ip == NULL) {
+        free(sock_id);
+        return -1;
+    }
+
+    strcpy(sock_id->src_ip, manager->ip); // TODO: change to our strcpy.
     sock_id->src_port = port;
 
     printf("\nBind Request:\n\tPort: %d.\n\tFrom: %d-%d.\n", port, pid, socket_counter);
@@ -477,10 +487,10 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
 
         if (bind_result != 0) {
             result = -1; reply = REQUEST_DENIED;
+        } else {
+            result = 0; reply = REQUEST_GRANTED;
+            printf("\tBind successful.\n");
         }
-        
-        result = 0; reply = REQUEST_GRANTED;
-        printf("\tBind successful.\n");
     } else {
         printf("\tPort Taken - denying request.\n");
         result = 0; reply = REQUEST_DENIED;
@@ -488,12 +498,14 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     
     // send reply to client fifo.
     char* client_fifo_name = get_client_fifo_name(pid, socket_counter);
+    printf("client: %s.\n", client_fifo_name);
     if (write_char_to_fifo_name(client_fifo_name, reply) != 0) {
+        printf("3.\n");
         if (reply == REQUEST_GRANTED) remove_and_destroy_socket(manager, sock_id);
         result = -1;
     }
-
-    free(sock_id);
+    printf("4. - %d\n", result);
+    //free(sock_id);
     return result;
 
 }
@@ -544,7 +556,15 @@ NetworkManager createNetworkManager(char* ip) {
     // so we can destroy them later if something fails.
     manager->sockets = NULL;
 
-    manager->ip = ip;
+    manager->ip = (char*)malloc(sizeof(*ip) * strlen(ip) + 1); // TODO: change to our strlen.
+    if (NULL == manager->ip) {
+        destroyNetworkManager(manager);
+        return NULL;
+    }
+    if (strcpy(manager->ip, ip) == NULL) {
+        destroyNetworkManager(manager);
+        return NULL;
+    }
 
     // fifo and hash map creation is done in manager loop.
     return manager;
@@ -585,7 +605,7 @@ int managerLoop(NetworkManager manager) {
         if (handle_bind_fifo(manager) != 0) {
             return -1;
         }
-
+    
         // go over connect requests fifo, handle them
         
         if (handle_in_packets_fifo(manager) != 0) {

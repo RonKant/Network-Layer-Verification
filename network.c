@@ -3,6 +3,7 @@
 
 #include "network.h"
 #include "socket_utils.h"
+#include "fifo_utils.h"
 
 /******************************
  * Utility functions
@@ -12,6 +13,8 @@
 /******************************
  * Interface implementation
  ******************************/
+
+// static int socket_count = 0;
 
 SocketID SocketCreate() {
     SocketID sock_id = (SocketID) malloc(sizeof(*sock_id));

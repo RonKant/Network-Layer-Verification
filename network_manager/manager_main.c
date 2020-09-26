@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
     }
 
     char* ip = argv[1];
+
     NetworkManager manager = createNetworkManager(ip);
     if (manager == NULL) {
         printf("Failed creating a manager.\n");

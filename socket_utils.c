@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -42,11 +43,34 @@ SocketState get_socket_state(SocketID sock_id) {
     return INVALID_SOCKET;
 }
 
+/**
+ * Note: Shallow copy.
+ */
+SocketID copy_socket_id(SocketID sock_id) {
+    SocketID result = (SocketID)malloc(sizeof(*result));
+    if (NULL == result) return NULL;
+
+    result->src_ip = sock_id->src_ip;
+    result->src_port = sock_id->src_port;
+    result->dst_ip = sock_id->dst_ip;
+    result->dst_port = sock_id->dst_port;
+
+    return result;
+}
+
 Socket create_bound_socket(SocketID sock_id) {
+
     Socket result = create_new_socket();
+
     if (NULL == result) return NULL;
 
     result->state = CLOSED;
+
+    result->id = copy_socket_id(sock_id);
+    if (result->id == NULL) {
+        destroy_socket(result);
+        return NULL;
+    }
 
     // init listen fifo
     char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sock_id);
@@ -59,17 +83,22 @@ Socket create_bound_socket(SocketID sock_id) {
             return NULL;
         }
 
-    result->listen_fifo_read_end = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
-    result->listen_fifo_write_end = open(listen_fifo_write_end_name, O_WRONLY);
+    // this might not belong here (since client opens listen fifos only later - it is maybe better to try and open them every time in nmanager loop)
 
-    if (result->listen_fifo_read_end == -1 || result->listen_fifo_write_end == -1) {
-        free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
-        destroy_socket(result);
-        return NULL;
-    }
+    // printf("1.\n");
+    // result->listen_fifo_read_end = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
+    // printf("errno: %d.\n", errno);
+    // printf("2.\n");
+    // result->listen_fifo_write_end = open(listen_fifo_write_end_name, O_WRONLY);
+    // printf("errno: %d.\n", errno);
+    // printf("3 - (%d, %d).\n", result->listen_fifo_read_end, result->listen_fifo_write_end);
+    // if (result->listen_fifo_read_end == -1 || result->listen_fifo_write_end == -1) {
+    //     free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
+    //     destroy_socket(result);
+    //     return NULL;
+    // }
 
-    free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
-    result->id = sock_id;
+    // free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
 
     return result;
 }
@@ -78,17 +107,15 @@ Socket create_bound_socket(SocketID sock_id) {
  * Frees all memory of socket, and unlinks all fifos.
  */
 void destroy_socket(Socket socket) {
-
-	close_socket_fifos(socket);
-	unlink_socket_fifos(socket);
-	if (socket->id != NULL) free(socket->id);
-
+    close_socket_fifos(socket);
+    if (socket->id != NULL) {
+        unlink_socket_fifos(socket);
+    }
     if (socket->send_window != NULL) destroyQueue(socket->send_window, NULL);
     if (socket->recv_window != NULL) free(socket->recv_window);
     if (socket->recv_window_isvalid != NULL) free(socket->recv_window_isvalid);
-
     if (socket->connections != NULL)  destroyQueue(socket->connections, NULL);
-
+    if (socket->id != NULL) free(socket->id);
     free(socket);
 }
 

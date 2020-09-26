@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "network.h"
+#include "socket_utils.h"
 #include "util_types.h"
 
 
@@ -34,6 +35,9 @@ struct Node_t{
 };*/
 int strcmp_t(char* str1,char* str2){
     //sassert(str1 != NULL && str2 !=NULL);
+    if (NULL == str1) {
+        return NULL != str2;
+    }
     while(*str1 && (*str1==*str2))
         str1++,str2++;
     return *(const unsigned char*)str1-*(const unsigned char*)str2;
@@ -78,6 +82,7 @@ bool compareKeys(SocketID key1,SocketID key2){
     assume(key1 != NULL && key2 != NULL);
     assume(key1->dst_port >0 && key1->src_port >0&&key2->dst_port >0 && key2->src_port >0);
     assume(key1->dst_ip != NULL && key1->src_ip != NULL && key2->dst_ip != NULL && key2->src_ip != NULL);
+
     return key1->dst_port == key2->dst_port && !strcmp_t(key1->src_ip,key2->src_ip) &&
            key1->src_port == key2->src_port && !strcmp_t(key1->dst_ip,key2->dst_ip);
 }
@@ -96,6 +101,7 @@ SocketID copyKeyFunction(SocketID key,HashMapErrors *error){
     }
     new->src_port = key->src_port;
     new->dst_port = key->dst_port;
+
     //check
     new->dst_ip = xmalloc(sizeof((key->dst_ip)+1));
     new->src_ip = xmalloc(sizeof((key->src_ip)+1));
@@ -169,12 +175,10 @@ HashMapErrors keyFree(SocketID key){
 
 
 HashMapErrors socketFree(Socket socket){
+    return HASH_MAP_SUCCESS;
     if(socket == NULL)
         return HASH_MAP_NULL_ARGUMENT;
-    free(socket->send_window);
-    free(socket->recv_window);
-
-    free(socket);
+    destroy_socket(socket);
     return HASH_MAP_SUCCESS;
 }
 bool socketCompare(Socket socket1,Socket socket2,HashMapErrors *error){
@@ -299,18 +303,18 @@ SocketID hashMapGetNext(HashMap hashMap){
 
 void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
     if (hashMap == NULL || key == NULL) {
-        *error = HASH_MAP_NULL_ARGUMENT;
+        if (NULL != error) *error = HASH_MAP_NULL_ARGUMENT;
         return;
     }
     int pos = hashCode(hashMap, key);
     Node posList = hashMap->table[pos];
     Node tmp = posList;
     if (!tmp) {
-        *error = HASH_MAP_SOCKET_NOT_FOUND;
+        if (NULL != error) *error = HASH_MAP_SOCKET_NOT_FOUND;
         return; //the list is empty
     }
     //if iterator points to the element we remove
-    if(compareKeys(key,hashMap->iterator->key)){
+    if(hashMap->iterator != NULL && compareKeys(key,hashMap->iterator->key)){
         if(hashMap->size == 1){
             hashMap->iterator = NULL;
         }
@@ -325,6 +329,7 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
             }
         }
     }
+
     if (tmp->next == NULL) {
         if (hashMap->compareKeyFunction(key, tmp->key))//one element in the posList
         {
@@ -333,10 +338,10 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
             free(tmp);
             hashMap->table[pos] = NULL;
             hashMap->number_of_sockets--;
-            *error = HASH_MAP_SUCCESS;
+            if (NULL != error) *error = HASH_MAP_SUCCESS;
             return;
         } else{
-            *error = HASH_MAP_SOCKET_NOT_FOUND;
+            if (NULL != error) *error = HASH_MAP_SOCKET_NOT_FOUND;
             return;
         }
     }

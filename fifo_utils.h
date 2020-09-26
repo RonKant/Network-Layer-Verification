@@ -34,7 +34,7 @@
 #define END_SOCKET_WRITE_FIFO_PREFIX "vnetwork_end_socket_write_"
 #define END_SOCKET_READ_FIFO_PREFIX "vnetwork_end_socket_read_"
 
-#define CLIENT_FIFO_PREFIX "vnetwork_"
+#define CLIENT_FIFO_PREFIX "vnetwork_nonbound_client_"
 
 /**
  * create the fifo directory if it does not exist yet.

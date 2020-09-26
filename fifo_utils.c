@@ -86,29 +86,16 @@ char* get_connect_requests_fifo_name(const char* ip) {
  *****************************************/
 
 /**
- * Allocates and returns a string representation of a CONNECTED socket.
+ * Allocates and returns a string representation of a socket.
  * Returns null on failure.
  */
-char* get_connected_socket_repr_string(SocketID sock_id) {
-    if (sock_id == NULL || get_socket_state(sock_id) != CONNECTED_SOCKET) return NULL;
-
-    char* result = (char*)malloc(sizeof(*result) * MAX_SOCKET_STRING_REPR_SIZE);
-    if (NULL == result) return NULL;
-    if (sprintf(result, "%s_%d_%s_%d", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port) < 0) {
-        free(result);
-        return NULL;
-    }
-
-    return result;
-}
-
 char* construct_full_socket_fifo_name(char* prefix, SocketID sock_id) {
     if (sock_id == NULL || sock_id->src_ip == NULL) return NULL;
     char socket_repr[MAX_SOCKET_STRING_REPR_SIZE];
     char* dst_ip = sock_id->dst_ip;
     if (NULL == dst_ip) dst_ip = "NOIP";
 
-    if (sprintf(socket_repr, "%s_%d_%s_%d", sock_id->src_ip, sock_id->src_port, dst_ip, sock_id->dst_port) < 0) {
+    if (sprintf(socket_repr, "(%s_%d_%s_%d)", sock_id->src_ip, sock_id->src_port, dst_ip, sock_id->dst_port) < 0) {
         return NULL;
     }
 
@@ -221,23 +208,6 @@ void unlink_socket_fifos(Socket socket) {
 	char* end_fifo_read_end_name = get_end_fifo_read_end_name(socket->id);
 	char* end_fifo_write_end_name = get_end_fifo_write_end_name(socket->id);
 
-
-
-    if (listen_fifo_read_end_name != NULL)
-        unlink(listen_fifo_read_end_name);
-    if (listen_fifo_write_end_name != NULL)
-        unlink(listen_fifo_write_end_name);
-    if (accept_fifo_write_end_name != NULL)
-        unlink(accept_fifo_write_end_name);
-    if (out_fifo_read_end_name != NULL)
-        unlink(out_fifo_read_end_name);
-    if (in_fifo_write_end_name != NULL)
-        unlink(in_fifo_write_end_name);
-    if (end_fifo_read_end_name != NULL)
-        unlink(end_fifo_read_end_name);
-    if (end_fifo_write_end_name != NULL)
-        unlink(end_fifo_write_end_name);	
-
     if (listen_fifo_read_end_name == NULL
 		|| listen_fifo_write_end_name == NULL
 		|| accept_fifo_write_end_name == NULL
@@ -247,6 +217,14 @@ void unlink_socket_fifos(Socket socket) {
 		|| end_fifo_write_end_name == NULL) {
             printf("Failed to extract fifo names for socket (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
         }
+
+    unlink(listen_fifo_read_end_name);
+    unlink(listen_fifo_write_end_name);
+    unlink(accept_fifo_write_end_name);
+    unlink(out_fifo_read_end_name);
+    unlink(in_fifo_write_end_name);
+    unlink(end_fifo_read_end_name);
+    unlink(end_fifo_write_end_name);	
 
     free(listen_fifo_read_end_name);
     free(listen_fifo_write_end_name);

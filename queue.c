@@ -114,9 +114,10 @@ void clearQueue(Queue q, QueueErrors *error)
 {
     if (q == NULL)
     {
-        *error = Queue_NULL_ARGUMENT;
+        if (error != NULL) *error = Queue_NULL_ARGUMENT;
     }
-    *error = Queue_SUCCESS;
+    if (error != NULL) *error = Queue_SUCCESS;
+
     while (!isEmpty_g(q))
     {
         dequeue(q,error);
@@ -127,6 +128,7 @@ void clearQueue(Queue q, QueueErrors *error)
 
 void destroyQueue(Queue q, QueueErrors *error)
 {
+    if (q == NULL) return;
     clearQueue(q, error);
     free(q);
 }
