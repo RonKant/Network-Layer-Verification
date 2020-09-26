@@ -307,9 +307,6 @@ bool should_terminate_manager(NetworkManager manager) {
  * destroys socket map and deletes fifos.
  */
 void unlink_and_clean_manager(NetworkManager manager) {
-    hashDestroy(manager->sockets, NULL);
-    manager->sockets = NULL;
-
     if (manager->terminate_fifo_fd != -1) close(manager->terminate_fifo_fd);
     if (manager->in_packet_fifo_fd != -1) close(manager->terminate_fifo_fd);
     if (manager->bind_request_fifo_fd != -1) close(manager->terminate_fifo_fd);
@@ -337,6 +334,9 @@ void unlink_and_clean_manager(NetworkManager manager) {
         }
 
     free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
+
+    hashDestroy(manager->sockets, NULL);
+    manager->sockets = NULL;
 }
 
 /**
@@ -447,7 +447,7 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
     }
 
     HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
-    free(new_socket);
+    // free(new_socket);
 
     if (err != HASH_MAP_SUCCESS) {
         printf("Error: failed inserting socket in to hash map.\n");
@@ -498,14 +498,15 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     
     // send reply to client fifo.
     char* client_fifo_name = get_client_fifo_name(pid, socket_counter);
-    printf("client: %s.\n", client_fifo_name);
     if (write_char_to_fifo_name(client_fifo_name, reply) != 0) {
-        printf("3.\n");
         if (reply == REQUEST_GRANTED) remove_and_destroy_socket(manager, sock_id);
         result = -1;
     }
-    printf("4. - %d\n", result);
-    //free(sock_id);
+
+    free(client_fifo_name);
+    if (reply == REQUEST_DENIED) {
+        destroy_socket_id(sock_id); // it did not enter hashmap - hence we need to free it ourselves.
+    }
     return result;
 
 }
@@ -556,6 +557,11 @@ NetworkManager createNetworkManager(char* ip) {
     // so we can destroy them later if something fails.
     manager->sockets = NULL;
 
+    manager->terminate_fifo_fd = -1;
+    manager->bind_request_fifo_fd = -1;
+    manager->connect_request_fifo_fd = -1;
+    manager->in_packet_fifo_fd = -1;
+
     manager->ip = (char*)malloc(sizeof(*ip) * strlen(ip) + 1); // TODO: change to our strlen.
     if (NULL == manager->ip) {
         destroyNetworkManager(manager);
@@ -577,6 +583,7 @@ void destroyNetworkManager(NetworkManager manager) {
     // terminate here?
     unlink_and_clean_manager(manager);
 
+    free(manager->ip);
     free(manager);
 
     printf("Manager memory freed.\n");

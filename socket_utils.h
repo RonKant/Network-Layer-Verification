@@ -38,4 +38,6 @@ Socket create_new_socket();
  */
 void destroy_socket(Socket socket);
 
+void destroy_socket_id(SocketID sock_id); // also frees ip strings
+
 #endif

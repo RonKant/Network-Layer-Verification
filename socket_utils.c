@@ -72,19 +72,19 @@ Socket create_bound_socket(SocketID sock_id) {
         return NULL;
     }
 
-    // init listen fifo
-    char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sock_id);
-    char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(sock_id);
-
-    if (listen_fifo_read_end_name == NULL
-        || listen_fifo_write_end_name == NULL) {
-            free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
-            destroy_socket(result);
-            return NULL;
-        }
 
     // this might not belong here (since client opens listen fifos only later - it is maybe better to try and open them every time in nmanager loop)
 
+    // init listen fifo
+    // char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sock_id);
+    // char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(sock_id);
+
+    // if (listen_fifo_read_end_name == NULL
+    //     || listen_fifo_write_end_name == NULL) {
+    //         free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
+    //         destroy_socket(result);
+    //         return NULL;
+    //     }
     // printf("1.\n");
     // result->listen_fifo_read_end = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
     // printf("errno: %d.\n", errno);
@@ -153,4 +153,13 @@ Socket create_new_socket(){
 		}
 
 	return s;
+}
+
+void destroy_socket_id(SocketID sock_id) {
+    if (sock_id == NULL) return;
+
+    free(sock_id->src_ip);
+    free(sock_id->dst_ip);
+
+    free(sock_id);
 }

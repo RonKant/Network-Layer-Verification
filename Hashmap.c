@@ -175,7 +175,6 @@ HashMapErrors keyFree(SocketID key){
 
 
 HashMapErrors socketFree(Socket socket){
-    return HASH_MAP_SUCCESS;
     if(socket == NULL)
         return HASH_MAP_NULL_ARGUMENT;
     destroy_socket(socket);
@@ -313,6 +312,7 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
         if (NULL != error) *error = HASH_MAP_SOCKET_NOT_FOUND;
         return; //the list is empty
     }
+
     //if iterator points to the element we remove
     if(hashMap->iterator != NULL && compareKeys(key,hashMap->iterator->key)){
         if(hashMap->size == 1){
@@ -333,8 +333,8 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
     if (tmp->next == NULL) {
         if (hashMap->compareKeyFunction(key, tmp->key))//one element in the posList
         {
-            hashMap->freeKeyFunction(tmp->key);
             hashMap->freeSocketFuncition(tmp->socket);
+            hashMap->freeKeyFunction(tmp->key);
             free(tmp);
             hashMap->table[pos] = NULL;
             hashMap->number_of_sockets--;
@@ -345,21 +345,23 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
             return;
         }
     }
+
     if(hashMap->compareKeyFunction(key,tmp->key))//more than one element but we want to remove the first
     {
         hashMap->table[pos] = tmp->next;
-        hashMap->freeKeyFunction(tmp->key);
         hashMap->freeSocketFuncition(tmp->socket);
+        hashMap->freeKeyFunction(tmp->key);
         free(tmp);
         hashMap->number_of_sockets--;
         *error = HASH_MAP_SUCCESS;
         return;
     }
+
     while(tmp && tmp->next){
         if(hashMap->compareKeyFunction(tmp->next->key,key)){
             Node tmpNext = tmp->next->next;
-            hashMap->freeKeyFunction(tmp->next->key);
             hashMap->freeSocketFuncition(tmp->next->socket);
+            hashMap->freeKeyFunction(tmp->next->key);
             free(tmp->next);
             tmp->next = tmpNext;
             hashMap->number_of_sockets--;
