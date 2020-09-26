@@ -1,6 +1,6 @@
 #include "socket_utils.h"
 
-void init_empty_socket(SocketID sock_id) {
+void init_empty_socket_id(SocketID sock_id) {
     sock_id->dst_ip = EMPTY_IP;
     sock_id->src_ip = EMPTY_IP;
     sock_id->dst_port = EMPTY_PORT;

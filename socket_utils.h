@@ -17,7 +17,7 @@ typedef enum {
     INVALID_SOCKET
 } SocketState;
 
-void init_empty_socket(SocketID sock_id);
+void init_empty_socket_id(SocketID sock_id);
 
 bool is_socket_connected(SocketID sock_id);
 

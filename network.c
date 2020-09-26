@@ -19,7 +19,7 @@ SocketID SocketCreate() {
         return NULL;
     }
 
-    init_empty_socket(sock_id);
+    init_empty_socket_id(sock_id);
     return sock_id; 
 }
 

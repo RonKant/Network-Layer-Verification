@@ -12,6 +12,9 @@
 
 #define MAX_SOCKET_STRING_REPR_SIZE 80
 
+#define REQUEST_GRANTED 'K'
+#define REQUEST_DENIED 'N'
+
 #define FIFO_FOLDER_PATH_PREFIX "/tmp/vnetwork_fifos/"
 
 #define TERMINATE_FIFO_PREFIX "vnetwork_terminate_"

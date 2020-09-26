@@ -226,12 +226,12 @@ Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
     Node tmp = posList;
     while(tmp){
         if(hashMap->compareKeyFunction(tmp->key,key)) {
-            *error = HASH_MAP_SUCCESS;
+            if (NULL != error) *error = HASH_MAP_SUCCESS;
             return tmp->socket;
         }
         tmp=tmp->next;
     }
-    *error = HASH_MAP_SOCKET_NOT_FOUND;
+    if (NULL != error) *error = HASH_MAP_SOCKET_NOT_FOUND;
     return NULL;
 }
 

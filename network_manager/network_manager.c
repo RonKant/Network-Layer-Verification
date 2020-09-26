@@ -409,7 +409,70 @@ int handle_out_requests_fifo(NetworkManager manager) {
     return 0; // mock
 }
 
+/**
+ * Checks whether a given port is free for binding.
+ */
+bool can_bind_new_socket(NetworkManager manager, int port) {
+    SocketID sock_id = (SocketID)malloc(sizeof(*sock_id));
+    if (sock_id == NULL) return false;
 
+    init_empty_socket_id(sock_id);
+    sock_id->src_ip = manager->ip;
+    sock_id->src_port = port;
+
+    Socket socket_on_target_port = getSocket(manager->sockets, sock_id, NULL);
+
+    free(sock_id);
+
+    return (socket_on_target_port == NULL);
+}
+
+/**
+ * Creates a new binding between a socket and a port.
+ * Entering here is assuming port is already free.
+ */
+int bind_new_socket(NetworkManager manager, int port) {
+
+    return 0; // mock
+}
+
+int handle_bind_request(NetworkManager manager, char* bind_request) {
+
+    int port, pid, socket_counter;
+    if (sscanf(bind_request, "%d_%d_%d", &port, &pid, &socket_counter) != 3) {
+        printf("Invalid bind request (ignored).\n");
+        return -1;
+    }
+
+    printf("\nBind Request:\n\tPort: %d.\n\tFrom: %d-%d.\n", port, pid, socket_counter);
+
+    int result; // what to return to main.
+    char reply; // what to reply to client.
+    if (can_bind_new_socket(manager, port)) {
+        printf("\tPort free - accepting request.\n");
+        int bind_result = bind_new_socket(manager, port);
+
+        if (bind_result != 0) {
+            result = -1; reply = REQUEST_DENIED;
+        }
+        
+        result = 0; reply = REQUEST_GRANTED;
+    } else {
+        printf("\tPort Taken - denying request.\n");
+        result = 0; reply = REQUEST_DENIED;
+    }
+    
+    // send reply to client fifo.
+
+
+    return result;
+
+}
+
+/**
+ * Checks bind fifo for new bind requests and handles them.
+ * Returns 0 on success (even if could not bind since port taken), -1 on failure.
+ */
 int handle_bind_fifo(NetworkManager manager) {
 
     char bind_request[MAX_BIND_REQUEST_SIZE];
@@ -425,28 +488,7 @@ int handle_bind_fifo(NetworkManager manager) {
     // bind_request now contains a full bind request of format:
     // <port>_<pid>_<socket-counter>\0
 
-    int port, pid, socket_counter;
-    if (sscanf(bind_request, "%d_%d_%d", &port, &pid, &socket_counter) != 3) {
-        printf("Invalid bind request (ignored).\n");
-        return -1;
-    }
-
-    printf("\nBind Request:\n\tPort: %d.\n\tFrom: %d-%d.\n", port, pid, socket_counter);
-
-    SocketID sock_id = (SocketID)malloc(sizeof(*sock_id));
-    if (sock_id == NULL) return -1;
-
-    init_empty_socket(sock_id);
-    sock_id->src_ip = manager->ip;
-    sock_id->src_port = port;
-
-
-
-    free(sock_id);
-
-    // check if can bind, bind, return result in matching fifo.
-
-    return 0; // mock
+    return handle_bind_request(manager, bind_request);
 }
 
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
@@ -508,7 +550,7 @@ int managerLoop(NetworkManager manager) {
         if (should_terminate_manager(manager)) {
             printf("Terminating manager\n");
             terminate_manager(manager);
-            return -1;
+            return 0;
         }
 
         if (handle_bind_fifo(manager) != 0) {
