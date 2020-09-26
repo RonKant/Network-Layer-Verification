@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "../fifo_utils.h"
+#include "../socket_utils.h"
 #include "../ip.h"
 #include "network_manager.h"
 
@@ -434,7 +435,7 @@ bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
  */
 int bind_new_socket(NetworkManager manager, SocketID sock_id) {
 
-    Socket new_socket = create_listening_socket(sock_id);
+    Socket new_socket = create_bound_socket(sock_id);
 
     if (NULL == new_socket) {
         printf("Error: failed allocating a new listening socket.\n");

@@ -12,6 +12,8 @@
 
 typedef struct conn_queue_t* ConnQueue;
 
+#define MAX_WINDOW_SIZE 1024
+
 
 // from tcp.h
 

@@ -2,7 +2,9 @@
 #include <unistd.h>
 
 
+#include "fifo_utils.h"
 #include "socket_utils.h"
+#include "socket.h"
 
 
 void init_empty_socket_id(SocketID sock_id) {
@@ -38,4 +40,90 @@ SocketState get_socket_state(SocketID sock_id) {
     if (is_socket_bound_only(sock_id)) return BOUND_ONLY_SOCKET;
     if (is_socket_empty(sock_id)) return EMPTY_SOCKET;
     return INVALID_SOCKET;
+}
+
+Socket create_bound_socket(SocketID sock_id) {
+    Socket result = create_new_socket();
+    if (NULL == result) return NULL;
+
+    result->state = CLOSED;
+
+    // init listen fifo
+    char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sock_id);
+    char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(sock_id);
+
+    if (listen_fifo_read_end_name == NULL
+        || listen_fifo_write_end_name == NULL) {
+            free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
+            destroy_socket(result);
+            return NULL;
+        }
+
+    result->listen_fifo_read_end = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
+    result->listen_fifo_write_end = open(listen_fifo_write_end_name, O_WRONLY);
+
+    if (result->listen_fifo_read_end == -1 || result->listen_fifo_write_end == -1) {
+        free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
+        destroy_socket(result);
+        return NULL;
+    }
+
+    free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
+    result->id = sock_id;
+
+    return result;
+}
+
+/**
+ * Frees all memory of socket, and unlinks all fifos.
+ */
+void destroy_socket(Socket socket) {
+
+	close_socket_fifos(socket);
+	unlink_socket_fifos(socket);
+	if (socket->id != NULL) free(socket->id);
+
+    if (socket->send_window != NULL) destroyQueue(socket->send_window, NULL);
+    if (socket->recv_window != NULL) free(socket->recv_window);
+    if (socket->recv_window_isvalid != NULL) free(socket->recv_window_isvalid);
+
+    if (socket->connections != NULL)  destroyQueue(socket->connections, NULL);
+
+    free(socket);
+}
+
+Socket create_new_socket(){
+	Socket s = (Socket)malloc(sizeof(*s));
+
+	if (s == NULL) return NULL;
+
+	s->id = NULL;
+	s->listen_fifo_read_end = -1;
+	s->listen_fifo_write_end = -1;
+	s->accept_fifo_write_end = -1;
+	s->out_fifo_read_end = -1;
+	s->in_fifo_write_end = -1;
+	s->end_fifo_read_end = -1;
+	s->end_fifo_write_end = -1;
+
+	s->send_window = NULL;
+	s->recv_window = NULL;
+	s->recv_window_isvalid = NULL;
+
+	s->connections = NULL;
+
+	s->send_window = createQueue_g(sizeof(char));
+	s->recv_window = (char*)malloc(sizeof(*s->recv_window) * MAX_WINDOW_SIZE);
+	s->recv_window_isvalid = (bool*)malloc(sizeof(*s->recv_window_isvalid) * MAX_WINDOW_SIZE);
+
+	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
+
+	if (NULL == s->send_window
+		|| NULL == s->recv_window
+		|| NULL == s->recv_window_isvalid) {
+			destroy_socket(s);
+			return NULL;
+		}
+
+	return s;
 }
