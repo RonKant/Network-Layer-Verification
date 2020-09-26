@@ -30,6 +30,8 @@
 #define END_SOCKET_WRITE_FIFO_PREFIX "vnetwork_end_socket_write_"
 #define END_SOCKET_READ_FIFO_PREFIX "vnetwork_end_socket_read_"
 
+#define CLIENT_FIFO_PREFIX "vnetwork_"
+
 /**
  * create the fifo directory if it does not exist yet.
  */
@@ -109,6 +111,7 @@ char* get_connected_socket_repr_string(SocketID sock_id) {
     if (sock_id == NULL || get_socket_state(sock_id) != CONNECTED_SOCKET) return NULL;
 
     char* result = (char*)malloc(sizeof(*result) * MAX_SOCKET_STRING_REPR_SIZE);
+    if (NULL == result) return NULL;
     if (sprintf(result, "%s_%d_%s_%d", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port) < 0) {
         free(result);
         return NULL;
@@ -125,12 +128,52 @@ char* get_bound_socket_repr_string(SocketID sock_id) {
     if (sock_id == NULL || get_socket_state(sock_id) != BOUND_ONLY_SOCKET) return NULL;
 
     char* result = (char*)malloc(sizeof(*result) * MAX_SOCKET_STRING_REPR_SIZE);
+    if (NULL == result) return NULL;
     if (sprintf(result, "%s_%d_BOUND", sock_id->src_ip, sock_id->src_port) < 0) {
         free(result);
         return NULL;
     }
 
     return result;
+}
+
+/******************************************
+ * Client fifo
+ *****************************************/
+
+char* get_client_fifo_name(int pid, int socket_counter) {
+    char* result = (char*)malloc(sizeof(*result) * MAX_SOCKET_STRING_REPR_SIZE);
+    if (NULL == result) return NULL;
+
+    if (sprintf(result, "%d_%d", pid, socket_counter) < 0) {
+        free(result);
+        return NULL;
+    }
+
+    char* fifo_name = construct_full_fifo_name(CLIENT_FIFO_PREFIX, result);
+    free(result);
+
+    return fifo_name;
+}
+
+/******************************************
+ * I/O
+ *****************************************/
+
+int write_char_to_fifo_name(char* fifo_name, char to_write) {
+    if (NULL == fifo_name) {
+        return -1;
+    } else {
+        int fifo_fd = open(fifo_name, O_WRONLY);
+        if (fifo_fd == -1) {
+            return -1;
+        } else if (write(fifo_fd, &to_write, sizeof(to_write)) == -1) {
+            close(fifo_fd);
+            return -1;
+        }
+        close(fifo_fd);
+        return 0;
+    }
 }
 
 #endif

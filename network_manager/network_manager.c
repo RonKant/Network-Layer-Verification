@@ -359,6 +359,17 @@ int terminate_manager(NetworkManager manager) {
     return 0;
 }
 
+void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
+    Socket to_remove = getSocket(manager->sockets, sock_id, NULL);
+    if (NULL == to_remove) {
+        return; // nothing to destroy.
+    }
+
+    hashmapRemove(manager->sockets, sock_id, NULL);
+
+    destroy_socket(to_remove);
+}
+
 /******************************************
  * Stages of manager loop
  * ****************************************/
@@ -412,18 +423,8 @@ int handle_out_requests_fifo(NetworkManager manager) {
 /**
  * Checks whether a given port is free for binding.
  */
-bool can_bind_new_socket(NetworkManager manager, int port) {
-    SocketID sock_id = (SocketID)malloc(sizeof(*sock_id));
-    if (sock_id == NULL) return false;
-
-    init_empty_socket_id(sock_id);
-    sock_id->src_ip = manager->ip;
-    sock_id->src_port = port;
-
+bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
     Socket socket_on_target_port = getSocket(manager->sockets, sock_id, NULL);
-
-    free(sock_id);
-
     return (socket_on_target_port == NULL);
 }
 
@@ -431,8 +432,22 @@ bool can_bind_new_socket(NetworkManager manager, int port) {
  * Creates a new binding between a socket and a port.
  * Entering here is assuming port is already free.
  */
-int bind_new_socket(NetworkManager manager, int port) {
+int bind_new_socket(NetworkManager manager, SocketID sock_id) {
 
+    Socket new_socket = create_listening_socket(sock_id);
+
+    if (NULL == new_socket) {
+        printf("Error: failed allocating a new listening socket.\n");
+        return -1;
+    }
+
+    HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
+    free(new_socket);
+
+    if (err != HASH_MAP_SUCCESS) {
+        printf("Error: failed inserting socket in to hash map.\n");
+        return -1;
+    }
     return 0; // mock
 }
 
@@ -444,27 +459,40 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
         return -1;
     }
 
+    SocketID sock_id = (SocketID)malloc(sizeof(*sock_id));
+    if (sock_id == NULL) return -1;
+
+    init_empty_socket_id(sock_id);
+    sock_id->src_ip = manager->ip;
+    sock_id->src_port = port;
+
     printf("\nBind Request:\n\tPort: %d.\n\tFrom: %d-%d.\n", port, pid, socket_counter);
 
     int result; // what to return to main.
     char reply; // what to reply to client.
-    if (can_bind_new_socket(manager, port)) {
+    if (can_bind_new_socket(manager, sock_id)) {
         printf("\tPort free - accepting request.\n");
-        int bind_result = bind_new_socket(manager, port);
+        int bind_result = bind_new_socket(manager, sock_id);
 
         if (bind_result != 0) {
             result = -1; reply = REQUEST_DENIED;
         }
         
         result = 0; reply = REQUEST_GRANTED;
+        printf("\tBind successful.\n");
     } else {
         printf("\tPort Taken - denying request.\n");
         result = 0; reply = REQUEST_DENIED;
     }
     
     // send reply to client fifo.
+    char* client_fifo_name = get_client_fifo_name(pid, socket_counter);
+    if (write_char_to_fifo_name(client_fifo_name, reply) != 0) {
+        if (reply == REQUEST_GRANTED) remove_and_destroy_socket(manager, sock_id);
+        result = -1;
+    }
 
-
+    free(sock_id);
     return result;
 
 }

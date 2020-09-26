@@ -27,4 +27,11 @@ bool is_socket_empty(SocketID sock_id);
 
 SocketState get_socket_state(SocketID sock_id);
 
+/**
+ * Create a new socket with given sock_id that is in LISTENING state,
+ * with all relevant fields initialized.
+ * Returns NULL on error.
+ */
+Socket create_listening_socket(SocketID sock_id);
+
 #endif
