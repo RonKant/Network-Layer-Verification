@@ -10,13 +10,6 @@
 #define EMPTY_IP NULL
 #define EMPTY_PORT -1
 
-typedef enum {
-    CONNECTED_SOCKET, 
-    BOUND_ONLY_SOCKET, 
-    EMPTY_SOCKET, 
-    INVALID_SOCKET
-} SocketState;
-
 void init_empty_socket_id(SocketID sock_id);
 
 bool is_socket_connected(SocketID sock_id);

@@ -64,7 +64,7 @@ struct HashMap_t{
     int number_of_sockets;
     Node* table;
     Node iterator;
-    copySocket socketCopyFunction;
+    // copySocket socketCopyFunction;
     freeSocket freeSocketFuncition;
     compareSocket compareSocketFunction;
     freeKey freeKeyFunction;
@@ -112,38 +112,62 @@ HashMapErrors keyFree(SocketID key){
     free(key);
     return HASH_MAP_SUCCESS;
 }
-Socket socketCopy(Socket socket,HashMapErrors *error){
-    Socket s_copy = xmalloc(sizeof(*s_copy));
-    if(s_copy == NULL) {
-        *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
-    }
-    s_copy->id = copyKeyFunction(socket->id,error);
-    s_copy->state = socket->state;
-    s_copy->send_window = xmalloc(sizeof(socket->send_window));
-    if(s_copy->send_window == NULL){
-        *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
-    }
-    if(socket->send_window != NULL)
-        strcpy_t(socket->send_window,s_copy->send_window);
-    s_copy->send_window_size = socket->send_window_size;
-    s_copy->max_send_window_size = socket->max_send_window_size;
-    s_copy->seq_of_first_send_window = socket->seq_of_first_send_window;
+// Socket socketCopy(Socket socket,HashMapErrors *error){
+//     Socket s_copy = xmalloc(sizeof(*s_copy));
+//     if(s_copy == NULL) {
+//         *error = HASH_MAP_ALLOCATION_FAIL;
+//         return NULL;
+//     }
+//     s_copy->id = copyKeyFunction(socket->id,error);
+//     s_copy->state = socket->state;
+//     s_copy->send_window = xmalloc(sizeof(socket->send_window));
+//     if(s_copy->send_window == NULL){
+//         *error = HASH_MAP_ALLOCATION_FAIL;
+//         return NULL;
+//     }
+//     if(socket->send_window != NULL)
+//         strcpy_t(socket->send_window,s_copy->send_window);
+//     s_copy->send_window_size = socket->send_window_size;
+//     s_copy->max_send_window_size = socket->max_send_window_size;
+//     s_copy->seq_of_first_send_window = socket->seq_of_first_send_window;
 
-    s_copy->recv_window = xmalloc(sizeof(socket->recv_window));
-    if(s_copy->recv_window == NULL){
-        *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
-    }
-    if(socket->recv_window != NULL)
-        strcpy_t(socket->recv_window,s_copy->recv_window);
-    s_copy->recv_window_size = socket->recv_window_size;
-    s_copy->max_recv_window_size = socket->max_recv_window_size;
-    s_copy->seq_of_first_recv_window = socket->seq_of_first_recv_window;
+//     s_copy->recv_window = xmalloc(sizeof(socket->recv_window));
+//     if(s_copy->recv_window == NULL){
+//         *error = HASH_MAP_ALLOCATION_FAIL;
+//         return NULL;
+//     }
+//     if(socket->recv_window != NULL)
+//         strcpy_t(socket->recv_window,s_copy->recv_window);
+//     s_copy->recv_window_size = socket->recv_window_size;
+//     s_copy->max_recv_window_size = socket->max_recv_window_size;
+//     s_copy->seq_of_first_recv_window = socket->seq_of_first_recv_window;
 
-    return s_copy;
-}
+//     return s_copy;
+// }
+
+// Socket socketCopy(Socket socket, HashMapErrors *error) {
+//     Socket s_copy = xmalloc(sizeof(*s_copy));
+//     if (NULL == s_copy) {
+//         *error = HASH_MAP_ALLOCATION_FAIL;
+//         return NULL;
+//     }
+
+//     s_copy->id = copyKeyFunction(socket->id, error);
+//     s_copy->state = socket->state;
+
+//     s_copy->listen_fifo_read_end = socket->listen_fifo_read_end;
+//     s_copy->listen_fifo_write_end = socket->listen_fifo_write_end;
+//     s_copy->accept_fifo_write_end = socket->accept_fifo_write_end;
+//     s_copy->out_fifo_read_end= socket->out_fifo_read_end;
+//     s_copy->in_fifo_write_end = socket->in_fifo_write_end;
+//     s_copy->end_fifo_read_end = socket->end_fifo_read_end;
+//     s_copy->end_fifo_write_end = socket->end_fifo_write_end;
+
+//     s_copy->send_window = socket->send_window;
+//     s_copy->seq_of_first_send_window = socket->
+// }
+
+
 HashMapErrors socketFree(Socket socket){
     if(socket == NULL)
         return HASH_MAP_NULL_ARGUMENT;
@@ -173,7 +197,7 @@ HashMap createHashMap(int size){
         (hashMap->table)[i] = NULL;
     }
     hashMap->compareSocketFunction =  socketCompare;
-    hashMap->socketCopyFunction=socketCopy;
+    // hashMap->socketCopyFunction=socketCopy;
     hashMap->freeSocketFuncition=socketFree;
 
     hashMap->compareKeyFunction=compareKeys;
@@ -208,12 +232,14 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
         }
         tmp=tmp->next;
     }
-    HashMapErrors *err=NULL;
-    Socket newSocket = socketCopy(socket,err);
-    sassert(newSocket !=NULL);
+    // HashMapErrors *err=NULL;
+    Socket newSocket = socket;
+    // Socket newSocket = socketCopy(socket,err);
+    // sassert(newSocket !=NULL);
     newNode->socket=newSocket;
-    newNode->key = copyKeyFunction(key,err);
-    sassert(newNode->key !=NULL);
+    // newNode->key = copyKeyFunction(key,err);
+    newNode->key = key;
+    // sassert(newNode->key !=NULL);
     newNode->next = posList;
     hashMap->table[pos] = newNode;
     hashMap->number_of_sockets++;

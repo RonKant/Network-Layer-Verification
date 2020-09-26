@@ -7,8 +7,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h> 
+#include <sys/stat.h> 
+#include <sys/types.h> 
+#include <unistd.h> 
 
 #include "socket_utils.h"
+#include "util_types.h"
 
 #define MAX_SOCKET_STRING_REPR_SIZE 80
 
@@ -120,6 +125,47 @@ char* get_connected_socket_repr_string(SocketID sock_id) {
     return result;
 }
 
+char* construct_full_socket_fifo_name(char* prefix, SocketID sock_id) {
+    if (sock_id == NULL || sock_id->src_ip == NULL) return NULL;
+    char socket_repr[80];
+    char* dst_ip = sock_id->dst_ip;
+    if (NULL == dst_ip) dst_ip = "NOIP";
+
+    if (sprintf(socket_repr, "%s_%d_%s_%d", sock_id->src_ip, sock_id->src_port, dst_ip, sock_id->dst_port) < 0) {
+        return NULL;
+    }
+
+    return construct_full_fifo_name(prefix, socket_repr);
+}
+
+char* get_listen_fifo_read_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(LISTEN_SOCKET_READ_FIFO_PREFIX, sock_id);
+}
+
+char* get_listen_fifo_write_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(LISTEN_SOCKET_WRITE_FIFO_PREFIX, sock_id);
+}
+
+char* get_accept_fifo_write_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(ACCEPT_SOCKET_READ_FIFO_PREFIX, sock_id);
+}
+
+char* get_out_fifo_read_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(OUT_DATA_SOCKET_FIFO_PREFIX, sock_id);
+}
+
+char* get_in_fifo_write_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(IN_DATA_SOCKET_FIFO_PREFIX, sock_id);
+}
+
+char* get_end_fifo_read_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(END_SOCKET_READ_FIFO_PREFIX, sock_id);
+}
+
+char* get_end_fifo_write_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(END_SOCKET_WRITE_FIFO_PREFIX, sock_id);
+}
+
 /**
  * Allocates and returns a string representation of a BOUND ONLY socket.
  * Returns null on failure.
@@ -174,6 +220,82 @@ int write_char_to_fifo_name(char* fifo_name, char to_write) {
         close(fifo_fd);
         return 0;
     }
+}
+
+
+
+
+void close_socket_fifos(Socket socket) {
+	if (socket->listen_fifo_read_end != -1) close(socket->listen_fifo_read_end);
+	if (socket->listen_fifo_write_end != -1) close(socket->listen_fifo_write_end);
+	if (socket->accept_fifo_write_end != -1) close(socket->accept_fifo_write_end);
+	if (socket->out_fifo_read_end != -1) close(socket->out_fifo_read_end);
+	if (socket->in_fifo_write_end != -1) close(socket->in_fifo_write_end);
+	if (socket->end_fifo_read_end != -1) close(socket->end_fifo_read_end);
+	if (socket->end_fifo_write_end != -1) close(socket->end_fifo_write_end);
+}
+
+void unlink_socket_fifos(Socket socket) {
+	char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(socket->id);
+	char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(socket->id);
+	char* accept_fifo_write_end_name = get_accept_fifo_write_end_name(socket->id);
+	char* out_fifo_read_end_name = get_out_fifo_read_end_name(socket->id);
+	char* in_fifo_write_end_name = get_in_fifo_write_end_name(socket->id);
+	char* end_fifo_read_end_name = get_end_fifo_read_end_name(socket->id);
+	char* end_fifo_write_end_name = get_end_fifo_write_end_name(socket->id);
+
+
+
+    if (listen_fifo_read_end_name != NULL)
+        unlink(listen_fifo_read_end_name);
+    if (listen_fifo_write_end_name != NULL)
+        unlink(listen_fifo_write_end_name);
+    if (accept_fifo_write_end_name != NULL)
+        unlink(accept_fifo_write_end_name);
+    if (out_fifo_read_end_name != NULL)
+        unlink(out_fifo_read_end_name);
+    if (in_fifo_write_end_name != NULL)
+        unlink(in_fifo_write_end_name);
+    if (end_fifo_read_end_name != NULL)
+        unlink(end_fifo_read_end_name);
+    if (end_fifo_write_end_name != NULL)
+        unlink(end_fifo_write_end_name);	
+
+    if (listen_fifo_read_end_name == NULL
+		|| listen_fifo_write_end_name == NULL
+		|| accept_fifo_write_end_name == NULL
+		|| out_fifo_read_end_name == NULL
+		|| in_fifo_write_end_name == NULL
+		|| end_fifo_read_end_name == NULL
+		|| end_fifo_write_end_name == NULL) {
+            printf("Failed to extract fifo names for socket (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
+        }
+
+    free(listen_fifo_read_end_name);
+    free(listen_fifo_write_end_name);
+    free(accept_fifo_write_end_name);
+    free(out_fifo_read_end_name);
+    free(in_fifo_write_end_name);
+    free(end_fifo_read_end_name);
+    free(end_fifo_write_end_name);
+}
+
+/**
+ * Frees all memory of socket, and unlinks all fifos.
+ */
+void destroy_socket(Socket socket) {
+
+	close_socket_fifos(socket);
+	unlink_socket_fifos(socket);
+	free(socket->id);
+
+    destroyQueue(socket->send_window, NULL);
+    free(socket->recv_window);
+    free(socket->recv_window_isvalid);
+
+    destroyQueue(socket->connections, NULL);
+
+    free(socket);
 }
 
 #endif

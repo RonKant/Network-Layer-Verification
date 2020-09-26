@@ -8,7 +8,7 @@
 //#include "seahorn/seahorn.h"
 
 
-void *xmalloc(size_t sz){
+static void *xmalloc(size_t sz){
     void *p;
     p=malloc(sz);
  //   assume(p>0);

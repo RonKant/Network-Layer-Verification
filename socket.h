@@ -48,7 +48,7 @@ void close_socket(Socket socket);
 void update_recv_window(Socket socket);
 
 Socket create_new_socket();
-void destroy_socket(Socket socket);
+
 void update_socket_id(SocketID to_update, char* src_ip, int port);
 
 #endif
