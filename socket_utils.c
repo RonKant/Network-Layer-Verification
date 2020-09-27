@@ -37,6 +37,7 @@ bool is_socket_empty(SocketID sock_id) {
 }
 
 SocketState get_socket_state(SocketID sock_id) {
+    if (NULL == sock_id) return INVALID_SOCKET;
     if (is_socket_connected(sock_id)) return CONNECTED_SOCKET;
     if (is_socket_bound_only(sock_id)) return BOUND_ONLY_SOCKET;
     if (is_socket_empty(sock_id)) return EMPTY_SOCKET;

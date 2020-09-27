@@ -1,3 +1,4 @@
+#include <errno.h>
 #include "fifo_utils.h"
 
 /**
@@ -233,4 +234,44 @@ void unlink_socket_fifos(Socket socket) {
     free(in_fifo_write_end_name);
     free(end_fifo_read_end_name);
     free(end_fifo_write_end_name);
+}
+
+int read_entire_message(int fd, char* buf, int len) {
+    if (len < 0) {
+        printf("Invalid length provided - must be non-negative.\n");
+        return -1;
+    }
+
+    if (NULL == buf) {
+        printf("Invalid (NULL) buffer provided.\n");
+        return -1;
+    }
+
+    int bytes_left = len;
+    int read_result = read(fd, buf, len);
+    if (read_result == 0) {
+        return 0; // fd empty.
+    }
+
+    if (read_result == -1) {
+        if (errno == EAGAIN) return 0;
+        printf("An error has occurred while reading from file.\n");
+        printf("\terrno: %d\n", errno);
+        return -1;
+    }
+
+    bytes_left -= read_result;
+    while (bytes_left > 0) {
+        
+        read_result = read(fd, ((char*)buf) + len - bytes_left, bytes_left);
+        if (read_result == -1) {
+            if (errno == EAGAIN) return 0;
+            printf("An error has occurred while reading from file.\n");
+            return -1;
+        }
+
+        bytes_left -= read_result;
+    }
+
+    return len;
 }

@@ -17,7 +17,10 @@ typedef struct {
 
 // All possible error codes.
 typedef enum {
-	SUCCESS
+	SUCCESS,
+	INVALID_ARGUMENT,
+	MEMORY_ERROR,
+	REQUEST_DENIED
 } Status;
 
 /*
@@ -28,6 +31,17 @@ typedef struct {
 	int port;
 }* Address;
 
+/**
+ * Allocates a new Address object.
+ * Returns NULL on failure.
+ */
+Address AddressCreate(const char* ip, int port);
+
+/**
+ * Frees all memory related to address.
+ */
+void AddressDestroy(Address address);
+
 
 /*
  * Creates a new socket object.
@@ -35,6 +49,11 @@ typedef struct {
  * On failure - returns ILLEGAL_SOCKET_ID.
  */
 SocketID SocketCreate();
+
+/**
+ * Frees all memory related to SocketID object (does not close socket!).
+ */
+void SocketDestroy(SocketID sockid);
 
 /*
  * Closes a given socket and it's current ongoing connection.

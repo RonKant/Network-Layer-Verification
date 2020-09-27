@@ -11,7 +11,6 @@
 #include "network_manager.h"
 
 #define MAX_SOCKETS 32768
-#define DEFAULT_FIFO_MODE 0666
 
 #define MAX_HANDLES_PER_EPOCH 10
 #define MAX_BIND_REQUEST_SIZE 100
@@ -103,52 +102,6 @@ int initialize_network_manager_fifos(NetworkManager manager) {
 /******************************************
  * Utility Functions For manager loop
  * ****************************************/
-
-/**
- * Reads from fd into buf.
- * If fd is empty - returns 0.
- * If fd contains anything - will block and read into buf until entire len has been reached.
- * On success - returns 0 or length. On failre returns -1.
- */
-int read_entire_message(int fd, char* buf, int len) {
-    if (len < 0) {
-        printf("Invalid length provided - must be non-negative.\n");
-        return -1;
-    }
-
-    if (NULL == buf) {
-        printf("Invalid (NULL) buffer provided.\n");
-        return -1;
-    }
-
-    int bytes_left = len;
-    int read_result = read(fd, buf, len);
-    if (read_result == 0) {
-        return 0; // fd empty.
-    }
-
-    if (read_result == -1) {
-        if (errno == EAGAIN) return 0;
-        printf("An error has occurred while reading from file.\n");
-        printf("\terrno: %d\n", errno);
-        return -1;
-    }
-
-    bytes_left -= read_result;
-    while (bytes_left > 0) {
-        
-        read_result = read(fd, ((char*)buf) + len - bytes_left, bytes_left);
-        if (read_result == -1) {
-            if (errno == EAGAIN) return 0;
-            printf("An error has occurred while reading from file.\n");
-            return -1;
-        }
-
-        bytes_left -= read_result;
-    }
-
-    return len;
-}
 
 /**
  * Reads a string from fd to buf, until stop is encountered (including it).
@@ -486,25 +439,25 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
         int bind_result = bind_new_socket(manager, sock_id);
 
         if (bind_result != 0) {
-            result = -1; reply = REQUEST_DENIED;
+            result = -1; reply = REQUEST_DENIED_FIFO;
         } else {
-            result = 0; reply = REQUEST_GRANTED;
+            result = 0; reply = REQUEST_GRANTED_FIFO;
             printf("\tBind successful.\n");
         }
     } else {
         printf("\tPort Taken - denying request.\n");
-        result = 0; reply = REQUEST_DENIED;
+        result = 0; reply = REQUEST_DENIED_FIFO;
     }
     
     // send reply to client fifo.
     char* client_fifo_name = get_client_fifo_name(pid, socket_counter);
     if (write_char_to_fifo_name(client_fifo_name, reply) != 0) {
-        if (reply == REQUEST_GRANTED) remove_and_destroy_socket(manager, sock_id);
+        if (reply == REQUEST_GRANTED_FIFO) remove_and_destroy_socket(manager, sock_id);
         result = -1;
     }
 
     free(client_fifo_name);
-    if (reply == REQUEST_DENIED) {
+    if (reply == REQUEST_DENIED_FIFO) {
         destroy_socket_id(sock_id); // it did not enter hashmap - hence we need to free it ourselves.
     }
     return result;

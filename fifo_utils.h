@@ -16,8 +16,10 @@
 
 #define MAX_SOCKET_STRING_REPR_SIZE 80
 
-#define REQUEST_GRANTED 'K'
-#define REQUEST_DENIED 'N'
+#define DEFAULT_FIFO_MODE 0666
+
+#define REQUEST_GRANTED_FIFO 'K'
+#define REQUEST_DENIED_FIFO 'N'
 
 #define FIFO_FOLDER_PATH_PREFIX "/tmp/vnetwork_fifos/"
 
@@ -115,5 +117,13 @@ int write_char_to_fifo_name(char* fifo_name, char to_write);
 void close_socket_fifos(Socket socket);
 
 void unlink_socket_fifos(Socket socket);
+
+/**
+ * Reads from fd into buf.
+ * If fd is empty - returns 0.
+ * If fd contains anything - will block and read into buf until entire len has been reached.
+ * On success - returns 0 or length. On failre returns -1.
+ */
+int read_entire_message(int fd, char* buf, int len);
 
 #endif
