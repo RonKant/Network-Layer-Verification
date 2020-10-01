@@ -391,7 +391,6 @@ bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
  * Entering here is assuming port is already free.
  */
 int bind_new_socket(NetworkManager manager, SocketID sock_id) {
-
     Socket new_socket = create_bound_socket(sock_id);
 
     if (NULL == new_socket) {

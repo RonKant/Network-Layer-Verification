@@ -147,7 +147,92 @@ Status SocketBind(SocketID sockid, Address addrport) {
     }
 }
 
-Status SocketListen(SocketID sockid, int queueLimit);
+Status SocketListen(SocketID sockid, int queueLimit) {
+    if (queueLimit < 0 || queueLimit > 100) {
+        printf("Queue limit for listening sockets should be between 0 and 100.\n");
+        return INVALID_ARGUMENT;
+    }
+     if (NULL == sockid) return INVALID_ARGUMENT;
+     if (get_socket_state(sockid) != BOUND_ONLY_SOCKET) {
+        printf("Socket has to be bound for listening.\n");
+        return INVALID_ARGUMENT;
+     }
+
+    char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(sockid);
+    char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sockid);
+
+    if (NULL == listen_fifo_read_end_name || NULL == listen_fifo_write_end_name) {
+        free(listen_fifo_write_end_name);
+        free(listen_fifo_read_end_name);
+        return MEMORY_ERROR;
+    }
+
+    mkfifo(listen_fifo_write_end_name, DEFAULT_FIFO_MODE);
+    mkfifo(listen_fifo_read_end_name, DEFAULT_FIFO_MODE);
+
+    int listen_fifo_write_fd = open(listen_fifo_write_end_name, O_RDWR);
+    if (-1 == listen_fifo_write_fd) {
+        unlink(listen_fifo_read_end_name);
+        unlink(listen_fifo_write_end_name);
+        free(listen_fifo_write_end_name);
+        free(listen_fifo_read_end_name);
+        return MEMORY_ERROR;
+    }
+
+    int listen_fifo_read_fd = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
+    if (-1 == listen_fifo_read_fd) {
+        close(listen_fifo_write_fd);
+        unlink(listen_fifo_read_end_name);
+        unlink(listen_fifo_write_end_name);
+        free(listen_fifo_write_end_name);
+        free(listen_fifo_read_end_name);
+        return MEMORY_ERROR;
+    }
+
+    // // all fifos are open - send request and await answer.
+    char message[2] = {(char)queueLimit, '\0'};
+
+    if (-1 == write(listen_fifo_write_fd, message, 2)) {
+        close(listen_fifo_write_fd); close(listen_fifo_read_fd);
+        unlink(listen_fifo_read_end_name); unlink(listen_fifo_write_end_name);
+        free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
+        return MEMORY_ERROR;
+    }
+
+    close(listen_fifo_write_fd);
+    // await answer
+
+    char answer;
+    while (1) {
+        int read_size = read_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
+        if (-1 == read_size) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+            return MEMORY_ERROR;
+        }
+
+        if (1 == read_size) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+            break;
+        }
+    }
+
+    Status return_value;
+    if (answer == REQUEST_GRANTED_FIFO) {
+        return_value = SUCCESS;
+    } else {
+        return_value = REQUEST_DENIED;
+    }
+
+    close(listen_fifo_write_fd);
+    unlink(listen_fifo_write_end_name);
+    free(listen_fifo_write_end_name);
+
+    return return_value;
+}
 
 Status SocketConnect(SocketID sockid, Address foreignAddr); // TODO: in our implementation one has to bind before connecting (so we don't randomize client port)
 															// distinct (by enum) a socket bound+LISTEN and a socket bound+nothing.

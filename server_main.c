@@ -22,6 +22,13 @@ int main() {
         printf("Failed binding socket.\n");
     } else {
         printf("Bind successful.\n");
+
+        Status status = SocketListen(sock, 5);
+        if (status != SUCCESS) {
+            printf("Failed listening socket.\n");
+        } else {
+            printf("Listen successful.\n");
+        }
     }
 
 
