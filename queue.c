@@ -49,6 +49,7 @@ Queue createQueue_g(size_t mem_size,compareElem compareElem1, freeElem freeElem1
 bool enqueue(Queue q, Element e) {
     Node new_Node = xmalloc(sizeof(*new_Node));
     new_Node->value = q->copy_elem(e);
+
     new_Node->next = NULL;
     if (!q->sizeOfQueue) {
         q->head = q->tail = new_Node;

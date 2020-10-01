@@ -314,18 +314,13 @@ int terminate_manager(NetworkManager manager) {
 }
 
 void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
-    printf("a.\n");
     Socket to_remove = getSocket(manager->sockets, sock_id, NULL);
-    printf("b.\n");
     if (NULL == to_remove) {
-        printf("c.\n");
         return; // nothing to destroy.
     }
 
     hashmapRemove(manager->sockets, sock_id, NULL);
-    printf("d.\n");
     //destroy_socket(to_remove); //this is done in hashmap remove (shouldn't TODO)
-    printf("e.\n");
 }
 
 /******************************************
@@ -395,6 +390,7 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
     if (id_copy == NULL) {
         return -1;
     }
+
     Socket new_socket = create_bound_socket(id_copy);
     int result = 0;
 
@@ -404,6 +400,7 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
         printf("Error: failed allocating a new listening socket.\n");
         result = -1;
     } else {
+
         HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
         if (err != HASH_MAP_SUCCESS) {
             printf("Error: failed inserting socket in to hash map.\n");
@@ -581,7 +578,7 @@ int managerLoop(NetworkManager manager) {
 
         printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
-            printf("\t(%s, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
+            printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
             handle_socket_in_network(sock_id, manager);
         }
 

@@ -98,6 +98,7 @@ void* dictElementCopy(void* d){
     DictElement copy = xmalloc(sizeof(*copy));
     copy->key = copyKeyFunction(((DictElement)d)->key,NULL);
     copy->socket = socketCopy(((DictElement)d)->socket,NULL);
+
     return copy;
 }
 void dictElementFree(void* d){
@@ -167,6 +168,7 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
     }
     newDictElement->socket = newSocket;
     newDictElement->key = socket->id; //copyKeyFunction(socket->id,&err);
+
     if(err != HASH_MAP_SUCCESS){
         free(newDictElement);
         destroy_socket(newSocket);
@@ -200,10 +202,10 @@ SocketID hashMapGetFirst(HashMap hashMap) {
         return NULL;
     }
     for (int queue_num = 0; queue_num < hashMap->size; ++queue_num) {
-        Element element_from_queue = queueGetFirst((hashMap->table)[queue_num]);
+        DictElement element_from_queue = (DictElement)(queueGetFirst((hashMap->table)[queue_num]));
         if (element_from_queue != NULL) {
             hashMap->current_iterated_queue = queue_num;
-            return element_from_queue;
+            return element_from_queue->key;
         }
     }
     // none of the queues contained elements
@@ -218,16 +220,16 @@ SocketID hashMapGetNext(HashMap hashMap){
         return NULL;
     }
 
-    Element element_from_queue = queueGetNext((hashMap->table)[hashMap->current_iterated_queue]);
+    DictElement element_from_queue = (DictElement)(queueGetNext((hashMap->table)[hashMap->current_iterated_queue]));
     if (element_from_queue != NULL) {
-        return element_from_queue;
+        return element_from_queue->key;
     } else {
         // finished with this queue, move to the next one. (find first non empty one)
         for (int queue_num = hashMap->current_iterated_queue + 1; queue_num < hashMap->size; ++queue_num) {
-            Element element_from_queue = queueGetFirst((hashMap->table)[queue_num]);
+            DictElement element_from_queue = (DictElement)(queueGetFirst((hashMap->table)[queue_num]));
             if (element_from_queue != NULL) {
                 hashMap->current_iterated_queue = queue_num;
-                return element_from_queue;
+                return element_from_queue->key;
             }
         }
     }

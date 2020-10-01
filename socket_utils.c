@@ -88,6 +88,8 @@ Socket create_bound_socket(SocketID sock_id) {
     result->state = CLOSED;
 
     result->id = copy_socket_id(sock_id);
+        printf("5. %p\n", result->id->dst_ip);
+
     if (result->id == NULL) {
         destroy_socket(result);
         return NULL;
