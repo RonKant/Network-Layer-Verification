@@ -539,6 +539,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
     close(listen_fifo_write_fd);
     free(listen_fifo_write_name); 
+    free(listen_fifo_read_name);
 
     return 0;
 }
