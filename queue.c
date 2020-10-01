@@ -175,7 +175,7 @@ Element getHead(Queue q){
     //assume(new_Node!=NULL);
     new_Node->value = xmalloc(q->memSize);
     //assume(new_Node->value!=NULL);
-    //*((int *)new_Node->value) = 1;
+    *((int *)new_Node->value) = 1;
     int e2=1;
     int*t =&e2;
     char *csrc = (char *)t;

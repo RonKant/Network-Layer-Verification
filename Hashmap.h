@@ -33,9 +33,9 @@ bool socketCompare(Socket,Socket,HashMapErrors *error);
 Socket socketCopy(Socket socket,HashMapErrors *error);
 HashMapErrors socketFree(Socket socket);
 
-bool dictElementCompare(DictElement d1,DictElement d2);
-DictElement dictElementCopy(DictElement d);
-void dictElementFree(DictElement d);
+bool dictElementCompare(void* d1,void* d2);
+void* dictElementCopy(void* d);
+void dictElementFree(void* d);
 
 typedef SocketID (*copyKey)(SocketID,HashMapErrors *error);
 typedef HashMapErrors (*freeKey)(SocketID);

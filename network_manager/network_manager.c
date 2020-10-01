@@ -392,7 +392,6 @@ bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
  */
 int bind_new_socket(NetworkManager manager, SocketID sock_id) {
     Socket new_socket = create_bound_socket(sock_id);
-
     if (NULL == new_socket) {
         printf("Error: failed allocating a new listening socket.\n");
         return -1;
@@ -400,7 +399,6 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
 
     HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
     // free(new_socket);
-
     if (err != HASH_MAP_SUCCESS) {
         printf("Error: failed inserting socket in to hash map.\n");
         return -1;

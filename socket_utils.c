@@ -140,7 +140,7 @@ Socket create_new_socket(){
 
 	s->connections = NULL;
 
-	s->send_window = createQueue_g(sizeof(char));
+	s->send_window = createQueue_g(sizeof(char), NULL, NULL, NULL); // TODO: change to actual functions
 	s->recv_window = (char*)malloc(sizeof(*s->recv_window) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)malloc(sizeof(*s->recv_window_isvalid) * MAX_WINDOW_SIZE);
 

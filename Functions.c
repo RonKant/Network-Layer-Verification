@@ -11,7 +11,7 @@ void* xmalloc(size_t sz){
 }
 char* strcpy_t(char* dest, char* source){
     //assume(dest > 0 && source > 0);
-    if(dest == NULL)
+    if(dest == NULL || source == NULL)
         return NULL;
     char* ptr = dest;
     while(*source != '\0'){
