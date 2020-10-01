@@ -9,10 +9,11 @@
 #include "util_types.h"
 #include <stdio.h>
 #include <stdlib.h>
-typedef struct Node_t *Node;
+#include "queue.h"
 
 //typedef struct Key_t *Key;
 
+typedef struct DictElement_t *DictElement;
 typedef struct HashMap_t *HashMap;
 
 typedef enum {
@@ -31,6 +32,10 @@ typedef Socket (*copySocket)(Socket,HashMapErrors *error);
 bool socketCompare(Socket,Socket,HashMapErrors *error);
 Socket socketCopy(Socket socket,HashMapErrors *error);
 HashMapErrors socketFree(Socket socket);
+
+bool dictElementCompare(DictElement d1,DictElement d2);
+DictElement dictElementCopy(DictElement d);
+void dictElementFree(DictElement d);
 
 typedef SocketID (*copyKey)(SocketID,HashMapErrors *error);
 typedef HashMapErrors (*freeKey)(SocketID);
