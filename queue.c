@@ -163,6 +163,10 @@ Element getHead(Queue q){
     return NULL;
 }
 
+Queue copyQueue(Queue q) {
+    Queue new_queue = createQueue_g(q->memSize, q->compare_func, q->free_func, q->copy_elem);
+    return new_queue;
+}
 
 
 /*int main(int argc, char**argv) {

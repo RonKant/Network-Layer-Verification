@@ -44,6 +44,7 @@ typedef enum {
 
 Queue createQueue_g(size_t mem_size,compareElem compareElem1, freeElem freeElem1, copyElem copyElem1);
 void destroyQueue(Queue q, QueueErrors *error);
+Queue copyQueue(Queue q);
 bool enqueue(Queue q, Element e);
 bool isEmpty_g(Queue q);
 Element dequeue(Queue q, QueueErrors *error);

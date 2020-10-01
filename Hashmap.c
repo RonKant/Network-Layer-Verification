@@ -64,42 +64,11 @@ HashMapErrors keyFree(SocketID key){
 Socket socketCopy(Socket socket,HashMapErrors *error){ // TODO: update this function
     if (NULL != error) *error = HASH_MAP_SUCCESS;
 
-    Socket s_copy = xmalloc(sizeof(*s_copy));
-    if(s_copy == NULL) {
+    Socket s_copy = copy_socket(socket);
+    if (s_copy == NULL) {
         if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
     }
 
-    // IMPORTANT: destroy copy if returning prematurely.
-
-
-
-    s_copy->id = copyKeyFunction(socket->id,error);
-    s_copy->state = socket->state;
-    // s_copy->send_window = xmalloc(sizeof(socket->send_window));
-    // if(s_copy->send_window == NULL){
-    //     if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
-    //     return NULL;
-    // }
-    if(socket->send_window != NULL) {}
-    //strcpy_t(socket->send_window,s_copy->send_window);
-    //s_copy->send_window_size = socket->send_window_size;
-    //s_copy->max_send_window_size = socket->max_send_window_size;
-    s_copy->send_window = NULL;
-
-    s_copy->seq_of_first_send_window = socket->seq_of_first_send_window;
-    s_copy->recv_window = NULL;
-    // s_copy->recv_window = xmalloc(sizeof(socket->recv_window));
-    // if(s_copy->recv_window == NULL){
-    //     if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
-    //     return NULL;
-    // }
-    // if(socket->recv_window != NULL)
-    //     strcpy_t(s_copy->recv_window,socket->recv_window);
-    s_copy->recv_window_size = socket->recv_window_size;
-    s_copy->max_recv_window_size = socket->max_recv_window_size;
-    s_copy->seq_of_first_recv_window = socket->seq_of_first_recv_window;
-    if (NULL != error) *error = HASH_MAP_SUCCESS;
     return s_copy;
 }
 HashMapErrors socketFree(Socket socket){
@@ -190,7 +159,6 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
     }
     HashMapErrors err = SUCCESS;
     Socket newSocket = socketCopy(socket,&err);
-
     if(err != HASH_MAP_SUCCESS){
         free(newDictElement);
         return HASH_MAP_ALLOCATION_FAIL;

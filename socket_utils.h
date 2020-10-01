@@ -29,6 +29,8 @@ Socket create_bound_socket(SocketID sock_id);
 
 SocketID copy_socket_id(SocketID sock_id);
 
+Socket copy_socket(Socket to_copy);
+
 /**
  * Creates an empty - most generic state, socket.
  */
