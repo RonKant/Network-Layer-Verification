@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
 #include "network.h"
+#include "socket_utils.h"
 #include "util_types.h"
 #include "queue.h"
 //#include "seahorn/seahorn.h"
@@ -41,27 +43,15 @@ bool compareKeys(SocketID key1,SocketID key2){
            key1->src_port == key2->src_port && !strcmp_t(key1->dst_ip,key2->dst_ip);
 }
 SocketID copyKeyFunction(SocketID key,HashMapErrors *error){
-    //assume(key != NULL);
     if(key == NULL)
     {
         if (NULL != error) *error = HASH_MAP_NULL_ARGUMENT;
         return NULL;
     }
-    SocketID new = xmalloc(sizeof(*new));
-    if(!new)
-    {
-        if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
-    }
-    new->src_port = key->src_port;
-    new->dst_port = key->dst_port;
-    //check
-    new->dst_ip = xmalloc(sizeof((key->dst_ip)+1));
-    new->src_ip = xmalloc(sizeof((key->src_ip)+1));
-    strcpy_t(new->src_ip,key->src_ip);
-    strcpy_t(new->dst_ip,key->dst_ip);
-    if (NULL != error) *error = HASH_MAP_SUCCESS;
-    return new;
+
+    return copy_socket_id(key);
+
+    //assume(key != NULL);
 }
 HashMapErrors keyFree(SocketID key){
     if(!key)
@@ -72,32 +62,40 @@ HashMapErrors keyFree(SocketID key){
     return HASH_MAP_SUCCESS;
 }
 Socket socketCopy(Socket socket,HashMapErrors *error){ // TODO: update this function
-    return socket;
+    if (NULL != error) *error = HASH_MAP_SUCCESS;
+
     Socket s_copy = xmalloc(sizeof(*s_copy));
     if(s_copy == NULL) {
         if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
         return NULL;
     }
+
+    // IMPORTANT: destroy copy if returning prematurely.
+
+
+
     s_copy->id = copyKeyFunction(socket->id,error);
     s_copy->state = socket->state;
-    s_copy->send_window = xmalloc(sizeof(socket->send_window));
-    if(s_copy->send_window == NULL){
-        if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
-    }
-    if(socket->send_window != NULL)
+    // s_copy->send_window = xmalloc(sizeof(socket->send_window));
+    // if(s_copy->send_window == NULL){
+    //     if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
+    //     return NULL;
+    // }
+    if(socket->send_window != NULL) {}
     //strcpy_t(socket->send_window,s_copy->send_window);
     //s_copy->send_window_size = socket->send_window_size;
     //s_copy->max_send_window_size = socket->max_send_window_size;
-    s_copy->seq_of_first_send_window = socket->seq_of_first_send_window;
+    s_copy->send_window = NULL;
 
-    s_copy->recv_window = xmalloc(sizeof(socket->recv_window));
-    if(s_copy->recv_window == NULL){
-        if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
-        return NULL;
-    }
-    if(socket->recv_window != NULL)
-        strcpy_t(socket->recv_window,s_copy->recv_window);
+    s_copy->seq_of_first_send_window = socket->seq_of_first_send_window;
+    s_copy->recv_window = NULL;
+    // s_copy->recv_window = xmalloc(sizeof(socket->recv_window));
+    // if(s_copy->recv_window == NULL){
+    //     if (NULL != error) *error = HASH_MAP_ALLOCATION_FAIL;
+    //     return NULL;
+    // }
+    // if(socket->recv_window != NULL)
+    //     strcpy_t(s_copy->recv_window,socket->recv_window);
     s_copy->recv_window_size = socket->recv_window_size;
     s_copy->max_recv_window_size = socket->max_recv_window_size;
     s_copy->seq_of_first_recv_window = socket->seq_of_first_recv_window;
@@ -107,10 +105,9 @@ Socket socketCopy(Socket socket,HashMapErrors *error){ // TODO: update this func
 HashMapErrors socketFree(Socket socket){
     if(socket == NULL)
         return HASH_MAP_NULL_ARGUMENT;
-    free(socket->send_window);
-    free(socket->recv_window);
 
-    free(socket);
+    destroy_socket(socket);
+
     return HASH_MAP_SUCCESS;
 }
 bool socketCompare(Socket socket1,Socket socket2,HashMapErrors *error){
@@ -191,21 +188,24 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
         }
         tmp=getNext(tmp);
     }
-    HashMapErrors *err = xmalloc(sizeof(*err));
-    Socket newSocket = socketCopy(socket,err);
-    if(*err != HASH_MAP_SUCCESS){
+    HashMapErrors err = SUCCESS;
+    Socket newSocket = socketCopy(socket,&err);
+
+    if(err != HASH_MAP_SUCCESS){
         free(newDictElement);
         return HASH_MAP_ALLOCATION_FAIL;
     }
     newDictElement->socket = newSocket;
-    newDictElement->key = copyKeyFunction(socket->id,err);
-    if(*err != HASH_MAP_SUCCESS){
+    newDictElement->key = socket->id; //copyKeyFunction(socket->id,&err);
+    if(err != HASH_MAP_SUCCESS){
         free(newDictElement);
-        free(newSocket);
+        destroy_socket(newSocket);
         return HASH_MAP_ALLOCATION_FAIL;
     }
     //sassert(newSocket !=NULL);
     enqueue(posQueue,newDictElement);
+    destroy_socket(newDictElement->socket);
+    free(newDictElement);
     hashMap->number_of_sockets++;
     return HASH_MAP_SUCCESS;
 }
@@ -355,12 +355,12 @@ void hashDestroy(HashMap hashMap, HashMapErrors *error){
         if (NULL != error) *error = HASH_MAP_NULL_ARGUMENT;
         return;
     }
-    QueueErrors* queueErrors = Queue_SUCCESS;
+    QueueErrors queueErrors = Queue_SUCCESS;
     for(int i=0; i<hashMap->size;i++){
         Queue tmp= hashMap->table[i];
-        destroyQueue(tmp,queueErrors);
-        if(*queueErrors != Queue_SUCCESS) {
-            *queueErrors = HASH_MAP_ERROR;
+        destroyQueue(tmp,&queueErrors);
+        if(queueErrors != Queue_SUCCESS) {
+            queueErrors = HASH_MAP_ERROR;
             return;
 
         }

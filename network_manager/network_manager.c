@@ -391,19 +391,29 @@ bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
  * Entering here is assuming port is already free.
  */
 int bind_new_socket(NetworkManager manager, SocketID sock_id) {
-    Socket new_socket = create_bound_socket(sock_id);
+    SocketID id_copy = copy_socket_id(sock_id);
+    if (id_copy == NULL) {
+        return -1;
+    }
+    Socket new_socket = create_bound_socket(id_copy);
+    int result = 0;
+
+    destroy_socket_id(id_copy);
+
     if (NULL == new_socket) {
         printf("Error: failed allocating a new listening socket.\n");
-        return -1;
+        result = -1;
+    } else {
+        HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
+        if (err != HASH_MAP_SUCCESS) {
+            printf("Error: failed inserting socket in to hash map.\n");
+            result = -1;
+        } else {
+            result = 0;
+        }
     }
-
-    HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
-    // free(new_socket);
-    if (err != HASH_MAP_SUCCESS) {
-        printf("Error: failed inserting socket in to hash map.\n");
-        return -1;
-    }
-    return 0; // mock
+    destroy_socket(new_socket);
+    return result; // mock
 }
 
 int handle_bind_request(NetworkManager manager, char* bind_request) {
@@ -454,9 +464,7 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     }
 
     free(client_fifo_name);
-    if (reply == REQUEST_DENIED_FIFO) {
-        destroy_socket_id(sock_id); // it did not enter hashmap - hence we need to free it ourselves.
-    }
+    destroy_socket_id(sock_id);
     return result;
 
 }

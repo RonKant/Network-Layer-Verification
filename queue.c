@@ -149,7 +149,7 @@ void clearQueue(Queue q, QueueErrors *error)
 
     while (!isEmpty_g(q))
     {
-        dequeue(q,error);
+        q->free_func(dequeue(q,error));
     }
 }
 void destroyQueue(Queue q, QueueErrors *error)

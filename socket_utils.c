@@ -51,9 +51,29 @@ SocketID copy_socket_id(SocketID sock_id) {
     SocketID result = (SocketID)malloc(sizeof(*result));
     if (NULL == result) return NULL;
 
-    result->src_ip = sock_id->src_ip;
+    result->src_ip = NULL;
+    result->dst_ip = NULL;
+
+    if (sock_id->src_ip != NULL) {
+        result->src_ip = (char*)malloc(strlen(sock_id->src_ip) + 1); // TODO: change to our strlen
+        if (NULL == result->src_ip) {
+            free(result);
+            return NULL;
+        }
+        strcpy(result->src_ip, sock_id->src_ip);
+    }
+
+    if (sock_id->dst_ip != NULL) {
+        result->dst_ip = (char*)malloc(strlen(sock_id->dst_ip) + 1); // TODO: change to our strlen
+        if (NULL == result->dst_ip) {
+            free(result->src_ip);
+            free(result);
+            return NULL;
+        }
+        strcpy(result->dst_ip, sock_id->dst_ip);
+    }
+
     result->src_port = sock_id->src_port;
-    result->dst_ip = sock_id->dst_ip;
     result->dst_port = sock_id->dst_port;
 
     return result;
@@ -73,51 +93,26 @@ Socket create_bound_socket(SocketID sock_id) {
         return NULL;
     }
 
-
-    // this might not belong here (since client opens listen fifos only later - it is maybe better to try and open them every time in nmanager loop)
-
-    // init listen fifo
-    // char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sock_id);
-    // char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(sock_id);
-
-    // if (listen_fifo_read_end_name == NULL
-    //     || listen_fifo_write_end_name == NULL) {
-    //         free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
-    //         destroy_socket(result);
-    //         return NULL;
-    //     }
-    // printf("1.\n");
-    // result->listen_fifo_read_end = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
-    // printf("errno: %d.\n", errno);
-    // printf("2.\n");
-    // result->listen_fifo_write_end = open(listen_fifo_write_end_name, O_WRONLY);
-    // printf("errno: %d.\n", errno);
-    // printf("3 - (%d, %d).\n", result->listen_fifo_read_end, result->listen_fifo_write_end);
-    // if (result->listen_fifo_read_end == -1 || result->listen_fifo_write_end == -1) {
-    //     free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
-    //     destroy_socket(result);
-    //     return NULL;
-    // }
-
-    // free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
-
     return result;
 }
 
 /**
- * Frees all memory of socket, and unlinks all fifos.
+ * Frees all memory of socket, without touching it's fifos.
  */
 void destroy_socket(Socket socket) {
-    close_socket_fifos(socket);
-    if (socket->id != NULL) {
-        unlink_socket_fifos(socket);
-    }
     if (socket->send_window != NULL) destroyQueue(socket->send_window, NULL);
     if (socket->recv_window != NULL) free(socket->recv_window);
     if (socket->recv_window_isvalid != NULL) free(socket->recv_window_isvalid);
     if (socket->connections != NULL)  destroyQueue(socket->connections, NULL);
-    if (socket->id != NULL) free(socket->id);
+    if (socket->id != NULL) destroy_socket_id(socket->id);
     free(socket);
+}
+
+void destroy_socket_fifos(Socket socket) {
+    close_socket_fifos(socket);
+    if (socket->id != NULL) {
+        unlink_socket_fifos(socket);
+    }
 }
 
 Socket create_new_socket(){
@@ -141,8 +136,8 @@ Socket create_new_socket(){
 	s->connections = NULL;
 
 	s->send_window = createQueue_g(sizeof(char), NULL, NULL, NULL); // TODO: change to actual functions
-	s->recv_window = (char*)malloc(sizeof(*s->recv_window) * MAX_WINDOW_SIZE);
-	s->recv_window_isvalid = (bool*)malloc(sizeof(*s->recv_window_isvalid) * MAX_WINDOW_SIZE);
+	s->recv_window = (char*)malloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
+	s->recv_window_isvalid = (bool*)malloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
 	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
 
