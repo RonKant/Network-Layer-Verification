@@ -29,7 +29,10 @@ Socket create_bound_socket(SocketID sock_id);
 
 SocketID copy_socket_id(SocketID sock_id);
 
-Socket copy_socket(Socket to_copy);
+/* in these functions void* is socket (this is done this way for passing them to queue). */
+void* copy_socket(void* to_copy);
+
+bool compare_socket(void* s1, void* s2);
 
 /**
  * Creates an empty - most generic state, socket.
@@ -39,7 +42,7 @@ Socket create_new_socket();
 /**
  * Frees all memory of socket, and unlinks all fifos.
  */
-void destroy_socket(Socket socket);
+void destroy_socket(void* socket);
 
 void destroy_socket_id(SocketID sock_id); // also frees ip strings
 

@@ -79,7 +79,7 @@ typedef enum {
 					// receive ACK for FIN -> TIME_WAIT
 
 	TIME_WAIT		// connection is done. Must wait to ensure no connection overlap.
-					// after some defined time -> CLOSED.
+					// after some defined time -> CLOSED (and delete from hashmap).
 } TCPState;
 
 // typedef struct {

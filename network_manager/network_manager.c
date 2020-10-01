@@ -488,14 +488,79 @@ int handle_bind_fifo(NetworkManager manager) {
     return handle_bind_request(manager, bind_request);
 }
 
+int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
+    // Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
+    // return 0 on non critical errors so the entire system does not crash.
+
+    char* listen_fifo_write_name = get_listen_fifo_write_end_name(sock_id);
+    if (NULL == listen_fifo_write_name) return 0;
+
+    int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDONLY | O_NONBLOCK);
+    if (-1 == listen_fifo_write_fd) {
+        free(listen_fifo_write_name);
+        return 0;
+    }
+
+    char request[1];
+    int read_length = read_entire_message(listen_fifo_write_fd, request, 1);
+    if (read_length == -1) {
+        close(listen_fifo_write_fd);
+        free(listen_fifo_write_name);
+        return 0;
+    }
+
+    if (read_length == 0) return 0;
+
+    printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
+    char reply;
+
+    Socket sock = getSocket(manager->sockets, sock_id, NULL);
+    if (sock == NULL) {
+        reply = REQUEST_DENIED_FIFO;
+    } else {
+
+        sock->connections = createQueue_g(compare_socket, destroy_socket, copy_socket);
+        if (sock->connections == NULL) {
+            reply = REQUEST_DENIED_FIFO;
+        } else {
+            sock->state = LISTEN;
+            reply = REQUEST_GRANTED_FIFO;
+        }
+    }
+
+
+    // send reply to client fifo.
+    char* listen_fifo_read_name = get_listen_fifo_read_end_name(sock_id);
+    if (write_char_to_fifo_name(listen_fifo_read_name, reply) != 0) {
+        if (reply == REQUEST_GRANTED_FIFO) {
+            sock->state = CLOSED;
+            destroyQueue(sock->connections, NULL);
+            sock->connections = NULL;
+        }
+    }
+
+    close(listen_fifo_write_fd);
+    free(listen_fifo_write_name); 
+
+    return 0;
+}
+
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     /*
-    * Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
     * If socket is a listener and has a pending connection, and accept fifo is empty - put connection in accept fifo.
     * Check socket out fifo for RAW USER STRINGS. If there is something: push into socket outgoing queue.
     * Check end fifo. If there is something: close socket and free it's memory.
     * Check socket out queue/buffer. If (condition) - resend packet of unacked data.
     */
+
+    printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
+    int return_value = 0;
+
+    if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
+        return_value = check_and_handle_listen_request(sock_id, manager);
+        if (return_value != 0) return return_value;
+    }
+
     return 0; // mock
 }
 
@@ -578,7 +643,6 @@ int managerLoop(NetworkManager manager) {
 
         printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
-            printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
             handle_socket_in_network(sock_id, manager);
         }
 

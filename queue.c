@@ -31,13 +31,12 @@ void setNext(Node node, Node next){
     node->next = next;
 }
 
-Queue createQueue_g(size_t mem_size,compareElem compareElem1, freeElem freeElem1, copyElem copyElem1){
+Queue createQueue_g(compareElem compareElem1, freeElem freeElem1, copyElem copyElem1){
     Queue queue = xmalloc(sizeof(*queue));
     //assume(queue!=NULL);
     queue->head = NULL;
     queue->tail = NULL;
     queue->sizeOfQueue = 0;
-    queue->memSize = mem_size;
     queue->compare_func=compareElem1;
     queue->free_func = freeElem1;
     queue->copy_elem = copyElem1;
@@ -104,13 +103,7 @@ Element findByCondition(Queue q, conditionFunction cond, QueueErrors *error) {
     Node tmp = q->head;
     for (int i=0; i< q->sizeOfQueue; i++, tmp=tmp->next){
         if (cond(tmp->value)){
-            Element e = xmalloc(q->memSize);
-            if (e == NULL){
-                *error = Queue_ALLOCATION_FAIL;
-                return NULL;
-            }
-            myMemCpy(e,tmp->value,q->memSize);
-            return e;
+            return tmp->value;
         }
     }
     return NULL;
@@ -126,12 +119,11 @@ Element removeByCondition(Queue q, conditionFunction cond, QueueErrors *error){
         tmp = tmp->next;
         for (int i = 1; i < q->sizeOfQueue; i++, prev = tmp, tmp = tmp->next) {
             if (cond(tmp->value)) {
-                Element e = xmalloc(q->memSize);
+                Element e = q->copy_elem(q);
                 if (e == NULL){
                     *error = Queue_ALLOCATION_FAIL;
                     return NULL;
                 }
-                memcpy(e, tmp->value, q->memSize);
                 prev->next = tmp->next;
                 free(tmp->next);
                 free(tmp);
@@ -167,7 +159,7 @@ Element getHead(Queue q){
 }
 
 Queue copyQueue(Queue q) {
-    Queue new_queue = createQueue_g(q->memSize, q->compare_func, q->free_func, q->copy_elem);
+    Queue new_queue = createQueue_g(q->compare_func, q->free_func, q->copy_elem);
     return new_queue;
 }
 

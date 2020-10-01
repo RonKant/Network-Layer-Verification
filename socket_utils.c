@@ -98,16 +98,22 @@ Socket create_bound_socket(SocketID sock_id) {
     return result;
 }
 
+bool compare_socket(void* s1, void* s2) {
+    if (s1 == NULL) return s2 == NULL;
+    return compareKeys((SocketID)(((Socket)s1)->id), (SocketID)(((Socket)s2)->id));
+}
+
 /**
  * Frees all memory of socket, without touching it's fifos.
  */
-void destroy_socket(Socket socket) {
-    if (socket->send_window != NULL) destroyQueue(socket->send_window, NULL);
-    if (socket->recv_window != NULL) free(socket->recv_window);
-    if (socket->recv_window_isvalid != NULL) free(socket->recv_window_isvalid);
-    if (socket->connections != NULL)  destroyQueue(socket->connections, NULL);
-    if (socket->id != NULL) destroy_socket_id(socket->id);
-    free(socket);
+void destroy_socket(void* socket) {
+    Socket socket_to_destroy = (Socket) socket;
+    if (socket_to_destroy->send_window != NULL) destroyQueue(socket_to_destroy->send_window, NULL);
+    if (socket_to_destroy->recv_window != NULL) free(socket_to_destroy->recv_window);
+    if (socket_to_destroy->recv_window_isvalid != NULL) free(socket_to_destroy->recv_window_isvalid);
+    if (socket_to_destroy->connections != NULL)  destroyQueue(socket_to_destroy->connections, NULL);
+    if (socket_to_destroy->id != NULL) destroy_socket_id(socket_to_destroy->id);
+    free(socket_to_destroy);
 }
 
 void destroy_socket_fifos(Socket socket) {
@@ -140,7 +146,7 @@ Socket create_new_socket(){
 
 	s->connections = NULL;
 
-	s->send_window = createQueue_g(sizeof(char), NULL, NULL, NULL); // TODO: change to actual functions
+	s->send_window = createQueue_g(NULL, NULL, NULL); // TODO: change to actual functions
 	s->recv_window = (char*)malloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)malloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
@@ -156,8 +162,10 @@ Socket create_new_socket(){
 	return s;
 }
 
-Socket copy_socket(Socket to_copy) {
+void* copy_socket(void* to_copy) {
     if (to_copy == NULL) return NULL;
+
+    Socket to_copy_socket = (Socket)to_copy;
 
     Socket s = (Socket)malloc(sizeof(*s));
 
@@ -178,62 +186,62 @@ Socket copy_socket(Socket to_copy) {
 
     // copy now:
 
-    s->id = copy_socket_id(to_copy->id);
+    s->id = copy_socket_id(to_copy_socket->id);
     if (NULL == s->id) {
         destroy_socket(s);
         return NULL;
     }
 
-    s->send_window = copyQueue(to_copy->send_window);
+    s->send_window = copyQueue(to_copy_socket->send_window);
     if (NULL == s->send_window) {
         destroy_socket(s);
         return NULL;
     }
 
-    s->recv_window = (char*)malloc(sizeof(char) * to_copy->max_recv_window_size);
+    s->recv_window = (char*)malloc(sizeof(char) * to_copy_socket->max_recv_window_size);
     if (s->recv_window == NULL) {
         destroy_socket(s);
         return NULL;
     }
 
-    for (int i = 0; i < to_copy->max_recv_window_size; ++i) {
-        (s->recv_window)[i] = (to_copy->recv_window)[i];
+    for (int i = 0; i < to_copy_socket->max_recv_window_size; ++i) {
+        (s->recv_window)[i] = (to_copy_socket->recv_window)[i];
     }
 
-    s->recv_window_isvalid = (bool*)malloc(sizeof(bool) * to_copy->max_recv_window_size);
+    s->recv_window_isvalid = (bool*)malloc(sizeof(bool) * to_copy_socket->max_recv_window_size);
     if (NULL == s->recv_window_isvalid) {
         destroy_socket(s);
         return NULL;
     }
 
-    for (int i = 0; i < to_copy->max_recv_window_size; ++i) {
-        (s->recv_window_isvalid)[i] = (to_copy->recv_window_isvalid)[i];
+    for (int i = 0; i < to_copy_socket->max_recv_window_size; ++i) {
+        (s->recv_window_isvalid)[i] = (to_copy_socket->recv_window_isvalid)[i];
     }
 
-    if (NULL != to_copy->connections) {
-        s->connections = copyQueue(to_copy->connections);
+    if (NULL != to_copy_socket->connections) {
+        s->connections = copyQueue(to_copy_socket->connections);
         if (NULL == s->connections) {
             destroy_socket(s);
             return NULL;
         }
     }
 
-    s->state = to_copy->state;
-    s->listen_fifo_read_end = to_copy->listen_fifo_read_end;
-    s->listen_fifo_write_end = to_copy->listen_fifo_write_end;
-    s->accept_fifo_write_end = to_copy->accept_fifo_write_end;
+    s->state = to_copy_socket->state;
+    s->listen_fifo_read_end = to_copy_socket->listen_fifo_read_end;
+    s->listen_fifo_write_end = to_copy_socket->listen_fifo_write_end;
+    s->accept_fifo_write_end = to_copy_socket->accept_fifo_write_end;
 
-    s->out_fifo_read_end = to_copy->out_fifo_read_end;
-    s->in_fifo_write_end = to_copy->in_fifo_write_end;
-    s->end_fifo_read_end = to_copy->end_fifo_read_end;
-    s->end_fifo_write_end = to_copy->end_fifo_write_end;
+    s->out_fifo_read_end = to_copy_socket->out_fifo_read_end;
+    s->in_fifo_write_end = to_copy_socket->in_fifo_write_end;
+    s->end_fifo_read_end = to_copy_socket->end_fifo_read_end;
+    s->end_fifo_write_end = to_copy_socket->end_fifo_write_end;
 
-    s->seq_of_first_send_window = to_copy->seq_of_first_send_window;
-    s->recv_window_size = to_copy->recv_window_size;
-    s->max_recv_window_size = to_copy->max_recv_window_size;
-    s->seq_of_first_recv_window = to_copy->seq_of_first_recv_window;
+    s->seq_of_first_send_window = to_copy_socket->seq_of_first_send_window;
+    s->recv_window_size = to_copy_socket->recv_window_size;
+    s->max_recv_window_size = to_copy_socket->max_recv_window_size;
+    s->seq_of_first_recv_window = to_copy_socket->seq_of_first_recv_window;
 
-    s->max_connections = to_copy->max_connections;
+    s->max_connections = to_copy_socket->max_connections;
 
     return s;
 }

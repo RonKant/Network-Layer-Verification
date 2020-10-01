@@ -122,7 +122,7 @@ HashMap createHashMap(int size){
         //sassert(offset>=0);
         // creates an empty queue
         //***check***
-        hashMap->table[i] = createQueue_g(sizeof(DictElement),dictElementCompare,dictElementFree,dictElementCopy);
+        hashMap->table[i] = createQueue_g(dictElementCompare,dictElementFree,dictElementCopy);
     }
     hashMap->compareSocketFunction =  socketCompare;
     hashMap->socketCopyFunction=socketCopy;
@@ -184,18 +184,18 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
 Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
     int pos = hashCode(hashMap,key);
     Queue posQueue = hashMap->table[pos];
-    Node tmp = getHead(posQueue);
-    while(tmp){
-        if(hashMap->compareKeyFunction(((DictElement)getValue(tmp))->socket->id,key)) {
+
+    QUEUE_FOR_EACH(queue_item, posQueue) {
+        if (compareKeys(key, ((DictElement)(queue_item))->key)) {
             if (NULL != error) *error = HASH_MAP_SUCCESS;
-            //check if return a copy of the value
-            return ((DictElement)getValue(tmp))->socket;
+            return ((DictElement)(queue_item))->socket;
         }
-        tmp=getNext(tmp);
     }
+
     if (NULL != error) *error = HASH_MAP_SOCKET_NOT_FOUND;
     return NULL;
 }
+
 SocketID hashMapGetFirst(HashMap hashMap) {
     //assert(hashMap != NULL);
     if (hashMap->size == 0) {
