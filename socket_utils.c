@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 
+#include "Functions.h"
 #include "fifo_utils.h"
 #include "socket_utils.h"
 #include "socket.h"
@@ -88,7 +89,6 @@ Socket create_bound_socket(SocketID sock_id) {
     result->state = CLOSED;
 
     result->id = copy_socket_id(sock_id);
-        printf("5. %p\n", result->id->dst_ip);
 
     if (result->id == NULL) {
         destroy_socket(result);
@@ -98,9 +98,17 @@ Socket create_bound_socket(SocketID sock_id) {
     return result;
 }
 
+bool compare_socket_id(SocketID id1, SocketID id2) {
+    if(id1 == id2)
+    return true;
+
+    return id1->dst_port == id2->dst_port && !strcmp_t(id1->src_ip,id2->src_ip) &&
+            id1->src_port == id2->src_port && !strcmp_t(id1->dst_ip,id2->dst_ip);
+}
+
 bool compare_socket(void* s1, void* s2) {
     if (s1 == NULL) return s2 == NULL;
-    return compareKeys((SocketID)(((Socket)s1)->id), (SocketID)(((Socket)s2)->id));
+    return compare_socket_id((SocketID)(((Socket)s1)->id), (SocketID)(((Socket)s2)->id));
 }
 
 /**

@@ -170,7 +170,7 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     mkfifo(listen_fifo_write_end_name, DEFAULT_FIFO_MODE);
     mkfifo(listen_fifo_read_end_name, DEFAULT_FIFO_MODE);
 
-    int listen_fifo_write_fd = open(listen_fifo_write_end_name, O_RDWR);
+    int listen_fifo_write_fd = open(listen_fifo_write_end_name, O_WRONLY);
     if (-1 == listen_fifo_write_fd) {
         unlink(listen_fifo_read_end_name);
         unlink(listen_fifo_write_end_name);
@@ -190,9 +190,9 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     }
 
     // // all fifos are open - send request and await answer.
-    char message[2] = {(char)queueLimit, '\0'};
+    char message = (char)queueLimit;
 
-    if (-1 == write(listen_fifo_write_fd, message, 2)) {
+    if (-1 == write(listen_fifo_write_fd, &message, 1)) {
         close(listen_fifo_write_fd); close(listen_fifo_read_fd);
         unlink(listen_fifo_read_end_name); unlink(listen_fifo_write_end_name);
         free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);

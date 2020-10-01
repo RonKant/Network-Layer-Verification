@@ -503,22 +503,20 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
     char request[1];
     int read_length = read_entire_message(listen_fifo_write_fd, request, 1);
-    if (read_length == -1) {
+
+    if (read_length == -1 || read_length == 0) {
         close(listen_fifo_write_fd);
         free(listen_fifo_write_name);
         return 0;
     }
 
-    if (read_length == 0) return 0;
-
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
     Socket sock = getSocket(manager->sockets, sock_id, NULL);
-    if (sock == NULL) {
+    if (sock == NULL || sock->state == LISTEN) {
         reply = REQUEST_DENIED_FIFO;
     } else {
-
         sock->connections = createQueue_g(compare_socket, destroy_socket, copy_socket);
         if (sock->connections == NULL) {
             reply = REQUEST_DENIED_FIFO;
@@ -528,10 +526,10 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         }
     }
 
-
     // send reply to client fifo.
     char* listen_fifo_read_name = get_listen_fifo_read_end_name(sock_id);
-    if (write_char_to_fifo_name(listen_fifo_read_name, reply) != 0) {
+    if (write_char_to_fifo_name(listen_fifo_read_name, reply) == -1) {
+        printf("Error: writing response %c to client on port %d failed.\n", reply, sock_id->src_port);
         if (reply == REQUEST_GRANTED_FIFO) {
             sock->state = CLOSED;
             destroyQueue(sock->connections, NULL);
@@ -553,7 +551,7 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     * Check socket out queue/buffer. If (condition) - resend packet of unacked data.
     */
 
-    printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
+    // printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
     int return_value = 0;
 
     if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
@@ -641,7 +639,7 @@ int managerLoop(NetworkManager manager) {
 
         // currently broken because hashmap iterator does not work (because of badly initialized table entries)
 
-        printf("Connected sockets:\n");
+        // printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
             handle_socket_in_network(sock_id, manager);
         }
