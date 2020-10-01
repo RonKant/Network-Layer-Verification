@@ -10,7 +10,7 @@
 #include "../ip.h"
 #include "network_manager.h"
 
-#define MAX_SOCKETS 32768
+#define SOCKET_MAP_SIZE 100
 
 #define MAX_HANDLES_PER_EPOCH 10
 #define MAX_BIND_REQUEST_SIZE 100
@@ -555,7 +555,7 @@ int managerLoop(NetworkManager manager) {
     if (initialize_network_manager_fifos(manager) != 0) {
         return -1;
     }
-    manager->sockets = createHashMap(MAX_SOCKETS);
+    manager->sockets = createHashMap(SOCKET_MAP_SIZE);
     if (manager->sockets == NULL) {
         return -1;
     }
@@ -579,10 +579,11 @@ int managerLoop(NetworkManager manager) {
 
         // currently broken because hashmap iterator does not work (because of badly initialized table entries)
 
-        // HASH_MAP_FOREACH(sock_id, manager->sockets) {
-        //     printf("---\n");
-        //     handle_socket_in_network(sock_id, manager);
-        // }
+        printf("Connected sockets:\n");
+        HASH_MAP_FOREACH(sock_id, manager->sockets) {
+            printf("\t(%s, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
+            handle_socket_in_network(sock_id, manager);
+        }
 
     }
 }

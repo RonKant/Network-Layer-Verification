@@ -32,6 +32,8 @@ typedef struct QueueList
     compareElem compare_func;
     freeElem free_func;
     copyElem copy_elem;
+
+    Node iterator;
 }*Queue;
 
 typedef enum {
@@ -52,5 +54,13 @@ int size(Queue q);
 Element getHead(Queue q);
 Element findByCondition(Queue q, conditionFunction cond, QueueErrors *error);
 Element removeByCondition(Queue q, conditionFunction cond, QueueErrors *error);
+
+Element queueGetFirst(Queue queue);
+Element queueGetNext(Queue queue); 
+
+#define QUEUE_FOR_EACH(item, queue) \
+    for (Element item = queueGetFirst(queue); \
+        item != NULL; \
+        item = queueGetNext(queue))
 
 #endif //CODE_QUEUE_H

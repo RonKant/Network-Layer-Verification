@@ -31,6 +31,8 @@ struct HashMap_t{
     freeKey freeKeyFunction;
     compareKey compareKeyFunction;
     copyKey copyKeyFunction;
+
+    int current_iterated_queue;
 };
 
 bool compareKeys(SocketID key1,SocketID key2){
@@ -194,46 +196,44 @@ Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
 }
 SocketID hashMapGetFirst(HashMap hashMap) {
     //assert(hashMap != NULL);
-    if (hashMap->size == 0) return NULL;
-    hashMap->iterator = getHead(hashMap->table[0]);
-    return ((DictElement)getValue(hashMap->iterator))->socket->id;
+    if (hashMap->size == 0) {
+        return NULL;
+    }
+    for (int queue_num = 0; queue_num < hashMap->size; ++queue_num) {
+        Element element_from_queue = queueGetFirst((hashMap->table)[queue_num]);
+        if (element_from_queue != NULL) {
+            hashMap->current_iterated_queue = queue_num;
+            return element_from_queue;
+        }
+    }
+    // none of the queues contained elements
+    return NULL;
 }
-void hashMapSetFirst(HashMap hashMap){
-    if(hashMap == NULL || hashMap->size == 0)
-        return;
-    hashMap->iterator = getHead(hashMap->table[0]);
-}
-bool hashMapHasNext(HashMap hashMap){
-    return getNext(hashMap->iterator) == NULL;
-}
+
 SocketID hashMapGetNext(HashMap hashMap){
     if(hashMap == NULL || hashMap->size == 0)
         return NULL;
-    if(hashMap->size == 1){
-        return (((DictElement)getValue(hashMap->iterator))->socket->id);
+
+    if (hashMap->current_iterated_queue < 0 || hashMap->current_iterated_queue >= hashMap->size) {
+        return NULL;
     }
-    else{
-        // if the list where the node ends is done than we need the next list
-        if(!hashMapHasNext(hashMap)){
-            int index_in_table = hashCode(hashMap,((DictElement)getValue(hashMap->iterator))->socket->id);
-            if (index_in_table == hashMap->size - 1) {
-                // reached end of iteration
-                return NULL;
+
+    Element element_from_queue = queueGetNext((hashMap->table)[hashMap->current_iterated_queue]);
+    if (element_from_queue != NULL) {
+        return element_from_queue;
+    } else {
+        // finished with this queue, move to the next one. (find first non empty one)
+        for (int queue_num = hashMap->current_iterated_queue + 1; queue_num < hashMap->size; ++queue_num) {
+            Element element_from_queue = queueGetFirst((hashMap->table)[queue_num]);
+            if (element_from_queue != NULL) {
+                hashMap->current_iterated_queue = queue_num;
+                return element_from_queue;
             }
-            int index = index_in_table+1;
-            while(hashMap->table[index]->sizeOfQueue == 0){
-                index = index + 1;
-                if(index == hashMap->size - 1){
-                    // reached end of iteration
-                    return NULL;
-                }
-            }
-            return (((DictElement)getValue(getHead((hashMap->table[index]))))->socket->id);
-        }
-        else{
-            return (((DictElement)(getValue(getNext(hashMap->iterator))))->socket->id);
         }
     }
+
+    // if reached here - all queues were empty.
+    return NULL;
 }
 
 void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
@@ -249,34 +249,34 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
         return; //the queue is empty
     }
     //if iterator points to the element we remove
-    if(compareKeys(key,((DictElement)getValue(hashMap->iterator))->socket->id)){
-        if(hashMap->size == 1){
-            hashMap->iterator = NULL;
-        }
-        else{
-            // if the queue where the node ends is done than we need the next list
-            if(!hashMapHasNext(hashMap)){
-                int index_in_table = hashCode(hashMap,((DictElement)(getValue(hashMap->iterator)))->socket->id);
-                if (index_in_table == hashMap->size - 1) {
-                    // reached end of iteration
-                    hashMap->iterator = NULL;
-                }
-                else{
-                    while(hashMap->table[index_in_table]->sizeOfQueue == 0){
-                        index_in_table = index_in_table + 1;
-                        if(index_in_table == hashMap->size - 1){
-                            // reached end of iteration
-                            return;
-                        }
-                    }
-                    hashMap->iterator = getHead(hashMap->table[index_in_table+1]);
-                }
-            }
-            else{
-                hashMap->iterator = getNext(hashMap->iterator);
-            }
-        }
-    }
+    // if(compareKeys(key,((DictElement)getValue(hashMap->iterator))->socket->id)){
+    //     if(hashMap->size == 1){
+    //         hashMap->iterator = NULL;
+    //     }
+    //     else{
+    //         // if the queue where the node ends is done than we need the next list
+    //         if(!hashMapHasNext(hashMap)){
+    //             int index_in_table = hashCode(hashMap,((DictElement)(getValue(hashMap->iterator)))->socket->id);
+    //             if (index_in_table == hashMap->size - 1) {
+    //                 // reached end of iteration
+    //                 hashMap->iterator = NULL;
+    //             }
+    //             else{
+    //                 while(hashMap->table[index_in_table]->sizeOfQueue == 0){
+    //                     index_in_table = index_in_table + 1;
+    //                     if(index_in_table == hashMap->size - 1){
+    //                         // reached end of iteration
+    //                         return;
+    //                     }
+    //                 }
+    //                 hashMap->iterator = getHead(hashMap->table[index_in_table+1]);
+    //             }
+    //         }
+    //         else{
+    //             hashMap->iterator = getNext(hashMap->iterator);
+    //         }
+    //     }
+    // }
     if (getNext(tmp) == NULL){
         if (hashMap->compareKeyFunction(key,(((DictElement)getValue(tmp))->key)))//one element in the posList
         {

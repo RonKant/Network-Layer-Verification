@@ -41,6 +41,8 @@ Queue createQueue_g(size_t mem_size,compareElem compareElem1, freeElem freeElem1
     queue->compare_func=compareElem1;
     queue->free_func = freeElem1;
     queue->copy_elem = copyElem1;
+
+    queue->iterator = NULL;
     return queue;
 }
 
@@ -166,6 +168,23 @@ Element getHead(Queue q){
 Queue copyQueue(Queue q) {
     Queue new_queue = createQueue_g(q->memSize, q->compare_func, q->free_func, q->copy_elem);
     return new_queue;
+}
+
+Element queueGetFirst(Queue queue) {
+    if (NULL == queue) return NULL;
+    queue->iterator = queue->head;
+    if (queue->iterator == NULL) {
+        return NULL;
+    }
+    return queue->iterator->value;
+}
+Element queueGetNext(Queue queue) {
+    if (NULL ==  queue) return NULL;
+    if (queue->iterator->next == NULL) {
+        return NULL;
+    }
+    queue->iterator = queue->iterator->next;
+    return queue->iterator->value;
 }
 
 
