@@ -126,4 +126,9 @@ void unlink_socket_fifos(Socket socket);
  */
 int read_entire_message(int fd, char* buf, int len);
 
+/**
+ * Like read_entire_message, but will not return 0 (will keep blocking).
+ */
+int read_nonzero_entire_message(int fd, char* buf, int len);
+
 #endif

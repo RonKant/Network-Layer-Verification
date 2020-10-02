@@ -236,6 +236,22 @@ void unlink_socket_fifos(Socket socket) {
     free(end_fifo_write_end_name);
 }
 
+
+/**
+ * Like read_entire_message, but will not return 0 (will keep blocking).
+ */
+int read_nonzero_entire_message(int fd, char* buf, int len) {
+    while (1) {
+        int read_result = read_entire_message(fd, buf, len);
+        if (read_result == -1) {
+            return -1;
+        }
+        if (read_result > 0) {
+            return read_result;
+        }
+    }
+}
+
 int read_entire_message(int fd, char* buf, int len) {
     if (len < 0) {
         printf("Invalid length provided - must be non-negative.\n");

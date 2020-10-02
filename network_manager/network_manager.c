@@ -141,20 +141,6 @@ int read_message_until_char(int fd, char* buf, char stop) {
     return current_end - buf;
 }
 
-/**
- * Like read_entire_message, but will not return 0 (will keep blocking).
- */
-int read_nonzero_entire_message(int fd, char* buf, int len) {
-    while (1) {
-        int read_result = read_entire_message(fd, buf, len);
-        if (read_result == -1) {
-            return -1;
-        }
-        if (read_result > 0) {
-            return read_result;
-        }
-    }
-}
 
 /**
  * With having already read version and header size, completes the reading of a given ip packet.

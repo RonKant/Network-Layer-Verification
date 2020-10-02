@@ -193,34 +193,30 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     char message = (char)queueLimit;
 
     if (-1 == write(listen_fifo_write_fd, &message, 1)) {
+
         close(listen_fifo_write_fd); close(listen_fifo_read_fd);
         unlink(listen_fifo_read_end_name); unlink(listen_fifo_write_end_name);
         free(listen_fifo_write_end_name); free(listen_fifo_read_end_name);
         return MEMORY_ERROR;
     }
 
-    close(listen_fifo_write_fd);
     // await answer
 
     char answer;
-    while (1) {
+    int read_size = read_nonzero_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
+    close(listen_fifo_write_fd);
 
-        int read_size = read_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
-        if (-1 == read_size) {
+    if (-1 == read_size) {
+        close(listen_fifo_read_fd);
+        unlink(listen_fifo_read_end_name);
+        free(listen_fifo_read_end_name);
+        return MEMORY_ERROR;
+    }
 
-            close(listen_fifo_read_fd);
-            unlink(listen_fifo_read_end_name);
-            free(listen_fifo_read_end_name);
-            return MEMORY_ERROR;
-        }
-
-        if (1 == read_size) {
-
-            close(listen_fifo_read_fd);
-            unlink(listen_fifo_read_end_name);
-            free(listen_fifo_read_end_name);
-            break;
-        }
+    if (1 == read_size) {
+        close(listen_fifo_read_fd);
+        unlink(listen_fifo_read_end_name);
+        free(listen_fifo_read_end_name);
     }
 
     Status return_value;
