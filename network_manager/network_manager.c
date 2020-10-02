@@ -495,9 +495,15 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     char* listen_fifo_write_name = get_listen_fifo_write_end_name(sock_id);
     if (NULL == listen_fifo_write_name) return 0;
 
+    char* accept_fifo_name = get_accept_fifo_write_end_name(sock_id);
+    if (NULL == accept_fifo_name) {
+        free(listen_fifo_write_name);
+        return 0;
+    }
+
     int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDONLY | O_NONBLOCK);
     if (-1 == listen_fifo_write_fd) {
-        free(listen_fifo_write_name);
+        free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
 
@@ -506,7 +512,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
     if (read_length == -1 || read_length == 0) {
         close(listen_fifo_write_fd);
-        free(listen_fifo_write_name);
+        free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
 
@@ -525,6 +531,18 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
             reply = REQUEST_GRANTED_FIFO;
         }
     }
+
+    if (REQUEST_GRANTED_FIFO == reply) {
+        if (mkfifo(accept_fifo_name, DEFAULT_FIFO_MODE) != 0) {
+            close(listen_fifo_write_fd);
+            free(listen_fifo_write_name); free(accept_fifo_name);
+            reply = REQUEST_DENIED_FIFO;
+            sock->state = CLOSED;
+        }
+    }
+
+    free(accept_fifo_name);
+
 
     // send reply to client fifo.
     char* listen_fifo_read_name = get_listen_fifo_read_end_name(sock_id);
