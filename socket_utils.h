@@ -40,9 +40,11 @@ bool compare_socket(void* s1, void* s2);
 Socket create_new_socket();
 
 /**
- * Frees all memory of socket, and unlinks all fifos.
+ * Frees all memory of socket
  */
 void destroy_socket(void* socket);
+
+void destroy_socket_fifos(Socket socket);
 
 void destroy_socket_id(SocketID sock_id); // also frees ip strings
 

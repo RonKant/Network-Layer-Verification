@@ -274,6 +274,13 @@ void unlink_and_clean_manager(NetworkManager manager) {
 
     free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
 
+    HASH_MAP_FOREACH(sock_id, manager->sockets) {
+        Socket sock = getSocket(manager->sockets, sock_id, NULL);
+        if (NULL != sock) {
+            destroy_socket_fifos(sock);
+        }
+    }
+    
     hashDestroy(manager->sockets, NULL);
     manager->sockets = NULL;
 }
@@ -294,7 +301,7 @@ int terminate_manager(NetworkManager manager) {
     //     // unlink socket fifos. TODO
     // }
 
-    unlink_and_clean_manager(manager);
+    //unlink_and_clean_manager(manager);
 
     return 0;
 }
