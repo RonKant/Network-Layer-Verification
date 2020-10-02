@@ -13,7 +13,7 @@ typedef struct {
 	char* src_ip, *dst_ip;
 } * SocketID;
 
-#define ILLEGAL_SOCKET_ID -1
+#define ILLEGAL_SOCKET_ID NULL
 
 // All possible error codes.
 typedef enum {
@@ -81,11 +81,10 @@ Status SocketConnect(SocketID sockid, Address foreignAddr); // TODO: in our impl
 
 /*
  * Gets a new socket for an incoming client connection.
- * Parameter Address - after returning, will contain remote (ip, port) of the new connection. 
  * On success - returns a new registered socket for communication with client.
  * On failre - returns ILLEGAL_SOCKET_ID.
  */
-SocketID SocketAccept(SocketID sockid, Address clientAddr);
+SocketID SocketAccept(SocketID sockid);
 
 /*
  * Sends a message to the socket at the other end of an existing connection.

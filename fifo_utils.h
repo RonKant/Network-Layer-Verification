@@ -131,4 +131,17 @@ int read_entire_message(int fd, char* buf, int len);
  */
 int read_nonzero_entire_message(int fd, char* buf, int len);
 
+/**
+ * Reads a string from fd to buf, until stop is encountered (including it).
+ * Returns length of message read, or 0 if buf is empty, or -1 on error.
+ */
+int read_message_until_char(int fd, char* buf, char stop);
+
+/**
+ * Reads a string from fd to buf until stop is encountered (including it).
+ * Blocks until read something.
+ * Returns length of message read, or -1 on error.
+ */
+int read_nonzero_message_until_char(int fd, char* buf, char stop);
+
 #endif

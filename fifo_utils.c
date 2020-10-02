@@ -252,6 +252,18 @@ int read_nonzero_entire_message(int fd, char* buf, int len) {
     }
 }
 
+int read_nonzero_message_until_char(int fd, char* buf, char stop) {
+    while (1) {
+        int read_result = read_message_until_char(fd, buf, stop);
+        if (read_result == -1) {
+            return -1;
+        }
+        if (read_result > 0) {
+            return read_result;
+        }
+    }
+}
+
 int read_entire_message(int fd, char* buf, int len) {
     if (len < 0) {
         printf("Invalid length provided - must be non-negative.\n");
@@ -290,4 +302,42 @@ int read_entire_message(int fd, char* buf, int len) {
     }
 
     return len;
+}
+
+/**
+ * Reads a string from fd to buf, until stop is encountered (including it).
+ * Returns length of message read, or 0 if buf is empty, or -1 on error.
+ */
+int read_message_until_char(int fd, char* buf, char stop) {
+    if (NULL == buf) {
+        printf("Invalid (NULL) buffer provided.\n");
+        return -1;
+    }
+
+    char* current_end = buf;
+    char current_char;
+    int read_value;
+
+    while ((read_value = read(fd, &current_char, 1)) > 0) {
+        *current_end = current_char;
+        current_end++;
+        if (current_char == stop) break;
+    }
+
+    if (read_value < 0 && errno != EAGAIN) {
+        printf("Error while reading from file.\n");
+        printf("\terrno: %d.\n", errno);
+        return -1;
+    }
+
+    if (current_end - buf == 0) { // read nothing.
+        return 0;
+    }
+
+    if (current_char != stop) { // loop finished because EOF
+        printf("Error: early EOF unexpected while reading from file.\n");
+        return -1;
+    }
+
+    return current_end - buf;
 }

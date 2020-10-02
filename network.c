@@ -237,7 +237,49 @@ Status SocketConnect(SocketID sockid, Address foreignAddr); // TODO: in our impl
 															// distinct (by enum) a socket bound+LISTEN and a socket bound+nothing.
 
 
-SocketID SocketAccept(SocketID sockid, Address clientAddr);
+SocketID SocketAccept(SocketID sockid) {
+    if (NULL == sockid) return ILLEGAL_SOCKET_ID;
+
+    if (get_socket_state(sockid) != BOUND_ONLY_SOCKET) {
+        printf("Socket has to be bound and listening for accepting connections.\n");
+        return ILLEGAL_SOCKET_ID;
+     }
+
+    char* accept_fifo_name = get_accept_fifo_write_end_name(sockid);
+    if (NULL == accept_fifo_name) return ILLEGAL_SOCKET_ID;
+
+    int accept_fifo_fd = open(accept_fifo_name, O_RDONLY);
+    if (-1 == accept_fifo_fd) {
+        free(accept_fifo_name);
+        return ILLEGAL_SOCKET_ID;
+    }
+
+    char message[MAX_SOCKET_STRING_REPR_SIZE];
+
+    int read_length = read_nonzero_message_until_char(accept_fifo_fd, message, '\0');
+    close(accept_fifo_fd);
+    free(accept_fifo_name);
+    if (-1 == read_length) {
+        return ILLEGAL_SOCKET_ID;
+    }
+
+    char* ip = (char*)malloc(MAX_SOCKET_STRING_REPR_SIZE);
+    if (NULL == ip) return ILLEGAL_SOCKET_ID;
+    int port;
+
+    if (sscanf(message, "%s_%d", ip, &port) != 2) {
+        free(ip);
+        return ILLEGAL_SOCKET_ID;
+    }
+
+    SocketID new_connection = copy_socket_id(sockid);
+    if (NULL == new_connection) return ILLEGAL_SOCKET_ID;
+
+    new_connection->dst_ip = ip;
+    new_connection->dst_port = port;
+
+    return new_connection;
+}
 
 int SocketSend(SocketID sockid, char* message);
 

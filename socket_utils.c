@@ -45,9 +45,6 @@ SocketState get_socket_state(SocketID sock_id) {
     return INVALID_SOCKET;
 }
 
-/**
- * Note: Shallow copy.
- */
 SocketID copy_socket_id(SocketID sock_id) {
     SocketID result = (SocketID)malloc(sizeof(*result));
     if (NULL == result) return NULL;
