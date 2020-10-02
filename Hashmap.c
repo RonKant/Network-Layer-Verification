@@ -9,54 +9,19 @@
 #include <stdint.h>
 #include "network.h"
 #include "util_types.h"
-//#include "seahorn/seahorn.h"
+#include "queue.h"
+#include "seahorn/seahorn.h"
 int offset = 0;
 unsigned int global_size;
-
-struct Node_t{
+struct DictElement_t
+{
     SocketID key;
     Socket socket;
-    Node next;
-    //bool inUse;
 };
-
-/*struct Key_t{
-    int localPort;
-    char* localIp;
-    int remotePort;
-    char* remoteIp;
-};*/
-int strcmp_t(char* str1,char* str2){
-    //sassert(str1 != NULL && str2 !=NULL);
-    while(*str1 && (*str1==*str2))
-        str1++,str2++;
-    return *(const unsigned char*)str1-*(const unsigned char*)str2;
-}
-char* strcpy_t(char* dest, char* source){
-    //assume(dest > 0 && source > 0);
-    if(dest == NULL)
-        return NULL;
-    char* ptr = dest;
-    while(*source != '\0'){
-        *dest = *source;
-        dest++;
-        source++;
-    }
-    *dest = '\0';
-    return ptr;
-}
-
-void* xmalloc(size_t sz){
-    void *p;
-    p=malloc(sz);
-    //assume(p>0);
-    return p;
-}
-
 struct HashMap_t{
     int size;
     int number_of_sockets;
-    Node* table;
+    Queue* table;
     Node iterator;
     copySocket socketCopyFunction;
     freeSocket freeSocketFuncition;
@@ -64,8 +29,8 @@ struct HashMap_t{
     freeKey freeKeyFunction;
     compareKey compareKeyFunction;
     copyKey copyKeyFunction;
-
 };
+
 bool compareKeys(SocketID key1,SocketID key2){
     if(key1 == key2)
         return true;
@@ -96,6 +61,7 @@ SocketID copyKeyFunction(SocketID key,HashMapErrors *error){
 
     strcpy_t(new->src_ip,key->src_ip);
     strcpy_t(new->dst_ip,key->dst_ip);
+    *error = HASH_MAP_SUCCESS;
     return new;
 }
 HashMapErrors keyFree(SocketID key){
@@ -135,7 +101,7 @@ Socket socketCopy(Socket socket,HashMapErrors *error){
     s_copy->recv_window_size = socket->recv_window_size;
     s_copy->max_recv_window_size = socket->max_recv_window_size;
     s_copy->seq_of_first_recv_window = socket->seq_of_first_recv_window;
-
+    *error = HASH_MAP_SUCCESS;
     return s_copy;
 }
 HashMapErrors socketFree(Socket socket){
@@ -153,6 +119,28 @@ bool socketCompare(Socket socket1,Socket socket2,HashMapErrors *error){
     *error = HASH_MAP_SUCCESS;
     return compareKeys(socket1->id,socket2->id);
 }
+bool dictElementCompare(DictElement d1,DictElement d2){
+    if(d1 == NULL || d2 ==NULL )
+        return false;
+    return compareKeys(d1->key,d2->key);
+}
+DictElement dictElementCopy(DictElement d){
+    if(d == NULL)
+        return NULL;
+    DictElement copy = xmalloc(sizeof(*copy));
+    HashMapErrors* err = xmalloc(sizeof(*err));
+    copy->key = copyKeyFunction(d->key,err);
+    copy->socket = socketCopy(d->socket,err);
+    return copy;
+}
+void dictElementFree(DictElement d){
+    if(d == NULL)
+        return;
+    socketFree(d->socket);
+    keyFree(d->key);
+    free(d);
+}
+
 HashMap createHashMap(int size){
     assume(size>0);
     HashMap hashMap = xmalloc(sizeof(*hashMap));
@@ -164,7 +152,9 @@ HashMap createHashMap(int size){
         offset = sizeof(*(hashMap->table))*i;
         sassert(offset < global_size); //PROBLEM
         sassert(offset>=0);
-        hashMap->table[i] = NULL;
+        // creates an empty queue
+        //***check***
+        hashMap->table[i] = createQueue_g(sizeof(DictElement),dictElementCompare,dictElementFree,dictElementCopy);
     }
     hashMap->compareSocketFunction =  socketCompare;
     hashMap->socketCopyFunction=socketCopy;
@@ -183,73 +173,99 @@ int hashCode(HashMap hashMap, SocketID key){
     return ret;
 }
 HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
-    if(!hashMap || key ==NULL || !socket)
+    if(!hashMap || !socket)
         return HASH_MAP_NULL_ARGUMENT;
     assume(hashMap>0 && key>0 && socket>0);
-    //int pos = hashCode(hashMap,key);
-    int pos =1;
-    //sassert(pos >= 0 && pos < hashMap->size);
-    Node posList = hashMap->table[pos];
-    Node newNode = xmalloc(sizeof(*newNode));
+    int pos = hashCode(hashMap,key);
+    //int pos = 1;
+    sassert(pos >= 0 && pos < hashMap->size);
+    Queue posQueue = hashMap->table[pos];
+    DictElement newDictElement = xmalloc(sizeof(*newDictElement));
 
-    Node tmp = posList;
+    Node tmp = posQueue->head;
     while(tmp != NULL){
-        assume(tmp->key !=NULL);
-        bool res = compareKeys(key,tmp->key);
+        assume(((DictElement)getValue(tmp))->socket->id !=NULL);
+        bool res = compareKeys(key,(((DictElement)getValue(tmp))->socket->id));
         if(res){
-            free(newNode);
+            //exists
+            free(newDictElement);
             return HASH_MAP_KEY_EXIST;
         }
-        tmp=tmp->next;
+        tmp=getNext(tmp);
     }
-    HashMapErrors *err=NULL;
+    HashMapErrors *err = xmalloc(sizeof(*err));
     Socket newSocket = socketCopy(socket,err);
+    if(*err != HASH_MAP_SUCCESS){
+        free(newDictElement);
+        return HASH_MAP_ALLOCATION_FAIL;
+    }
+    newDictElement->socket = newSocket;
+    newDictElement->key = copyKeyFunction(socket->id,err);
+    if(*err != HASH_MAP_SUCCESS){
+        free(newDictElement);
+        free(newSocket);
+        return HASH_MAP_ALLOCATION_FAIL;
+    }
     sassert(newSocket !=NULL);
-    newNode->socket=newSocket;
-    newNode->key = copyKeyFunction(key,err);
-    sassert(newNode->key !=NULL);
-    newNode->next = posList;
-    hashMap->table[pos] = newNode;
+    enqueue(posQueue,newDictElement);
     hashMap->number_of_sockets++;
     return HASH_MAP_SUCCESS;
 }
-
 Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
     int pos = hashCode(hashMap,key);
-    Node posList = hashMap->table[pos];
-    Node tmp = posList;
+    Queue posQueue = hashMap->table[pos];
+    Node tmp = getHead(posQueue);
     while(tmp){
-        if(hashMap->compareKeyFunction(tmp->key,key)) {
+        if(hashMap->compareKeyFunction(((DictElement)getValue(tmp))->socket->id,key)) {
             *error = HASH_MAP_SUCCESS;
-            return tmp->socket;
+            //check if return a copy of the value
+            return ((DictElement)getValue(tmp))->socket;
         }
-        tmp=tmp->next;
+        tmp=getNext(tmp);
     }
     *error = HASH_MAP_SOCKET_NOT_FOUND;
     return NULL;
 }
+SocketID hashMapGetFirst(HashMap hashMap) {
+    //sassert(hashMap != NULL);
+    if (hashMap->size == 0) return NULL;
+    hashMap->iterator = getHead(hashMap->table[0]);
+    return ((DictElement)getValue(hashMap->iterator))->socket->id;
+}
 void hashMapSetFirst(HashMap hashMap){
     if(hashMap == NULL || hashMap->size == 0)
         return;
-    hashMap->iterator = hashMap->table[0];
+    hashMap->iterator = getHead(hashMap->table[0]);
 }
 bool hashMapHasNext(HashMap hashMap){
-    return hashMap->iterator->next == NULL;
+    return getNext(hashMap->iterator) == NULL;
 }
-Socket hashMapGetNext(HashMap hashMap){
+SocketID hashMapGetNext(HashMap hashMap){
     if(hashMap == NULL || hashMap->size == 0)
         return NULL;
     if(hashMap->size == 1){
-        return socketCopy(hashMap->iterator->socket,NULL);
+        return (((DictElement)getValue(hashMap->iterator))->socket->id);
     }
     else{
         // if the list where the node ends is done than we need the next list
         if(!hashMapHasNext(hashMap)){
-            int index_in_table = hashCode(hashMap,hashMap->iterator->key);
-            return socketCopy(hashMap->table[(index_in_table+1)%hashMap->size]->socket,NULL);
+            int index_in_table = hashCode(hashMap,((DictElement)getValue(hashMap->iterator))->socket->id);
+            if (index_in_table == hashMap->size - 1) {
+                // reached end of iteration
+                return NULL;
+            }
+            int index = index_in_table+1;
+            while(hashMap->table[index]->sizeOfQueue == 0){
+                index = index + 1;
+                if(index == hashMap->size - 1){
+                    // reached end of iteration
+                    return NULL;
+                }
+            }
+            return (((DictElement)getValue(getHead((hashMap->table[index]))))->socket->id);
         }
         else{
-            return socketCopy(hashMap->iterator->next->socket,NULL);
+            return (((DictElement)(getValue(getNext(hashMap->iterator))))->socket->id);
         }
     }
 }
@@ -260,65 +276,81 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
         return;
     }
     int pos = hashCode(hashMap, key);
-    Node posList = hashMap->table[pos];
-    Node tmp = posList;
+    Queue posQueue = hashMap->table[pos];
+    Node tmp = getHead(posQueue);
     if (!tmp) {
         *error = HASH_MAP_SOCKET_NOT_FOUND;
-        return; //the list is empty
+        return; //the queue is empty
     }
     //if iterator points to the element we remove
-    if(compareKeys(key,hashMap->iterator->key)){
+    if(hashMap->iterator != NULL && compareKeys(key,((DictElement)getValue(hashMap->iterator))->socket->id)){
         if(hashMap->size == 1){
             hashMap->iterator = NULL;
         }
         else{
-            // if the list where the node ends is done than we need the next list
+            // if the queue where the node ends is done than we need the next list
             if(!hashMapHasNext(hashMap)){
-                int index_in_table = hashCode(hashMap,hashMap->iterator->key);
-                hashMap->iterator = hashMap->table[(index_in_table+1)%hashMap->size];
+                int index_in_table = hashCode(hashMap,((DictElement)(getValue(hashMap->iterator)))->socket->id);
+                if (index_in_table == hashMap->size - 1) {
+                    // reached end of iteration
+                    hashMap->iterator = NULL;
+                }
+                else{
+                    while(hashMap->table[index_in_table]->sizeOfQueue == 0){
+                        index_in_table = index_in_table + 1;
+                        if(index_in_table == hashMap->size - 1){
+                            // reached end of iteration
+                            hashMap->iterator = NULL;
+                        }
+                    }
+                    hashMap->iterator = getHead(hashMap->table[index_in_table+1]);
+                }
             }
             else{
-                hashMap->iterator = hashMap->iterator->next;
+                hashMap->iterator = getNext(hashMap->iterator);
             }
         }
     }
-    if (tmp->next == NULL) {
-        if (hashMap->compareKeyFunction(key, tmp->key))//one element in the posList
+    if (getNext(tmp) == NULL){
+        if (hashMap->compareKeyFunction(key,(((DictElement)getValue(tmp))->key)))//one element in the posList
         {
-            hashMap->freeKeyFunction(tmp->key);
-            hashMap->freeSocketFuncition(tmp->socket);
+            hashMap->freeKeyFunction(((DictElement)getValue(tmp))->key);
+            hashMap->freeSocketFuncition(((DictElement)getValue(tmp))->socket);
             free(tmp);
             hashMap->table[pos] = NULL;
             hashMap->number_of_sockets--;
             *error = HASH_MAP_SUCCESS;
+            posQueue->sizeOfQueue = posQueue->sizeOfQueue-1;
             return;
-        } else{
+        }else{
             *error = HASH_MAP_SOCKET_NOT_FOUND;
             return;
         }
     }
-    if(hashMap->compareKeyFunction(key,tmp->key))//more than one element but we want to remove the first
+    if(hashMap->compareKeyFunction(key,((DictElement)getValue(tmp))->key))//more than one element but we want to remove the first
     {
-        hashMap->table[pos] = tmp->next;
-        hashMap->freeKeyFunction(tmp->key);
-        hashMap->freeSocketFuncition(tmp->socket);
+        hashMap->table[pos]->head = getNext(tmp);
+        hashMap->freeKeyFunction(((DictElement)getValue(tmp))->key);
+        hashMap->freeSocketFuncition(((DictElement)getValue(tmp))->socket);
         free(tmp);
         hashMap->number_of_sockets--;
         *error = HASH_MAP_SUCCESS;
+        posQueue->sizeOfQueue = posQueue->sizeOfQueue-1;
         return;
     }
-    while(tmp && tmp->next){
-        if(hashMap->compareKeyFunction(tmp->next->key,key)){
-            Node tmpNext = tmp->next->next;
-            hashMap->freeKeyFunction(tmp->next->key);
-            hashMap->freeSocketFuncition(tmp->next->socket);
-            free(tmp->next);
-            tmp->next = tmpNext;
+    while(tmp && getNext(tmp)){
+        if(hashMap->compareKeyFunction(((DictElement)getValue(getNext(tmp)))->key,key)){
+            Node tmpNext = getNext(getNext(tmp));
+            hashMap->freeKeyFunction(((DictElement)getValue(getNext(tmp)))->key);
+            hashMap->freeSocketFuncition(((DictElement)getValue(getNext(tmp)))->socket);
+            free(getNext(tmp));
+            setNext(tmp,tmpNext);
             hashMap->number_of_sockets--;
             *error = HASH_MAP_SUCCESS;
+            posQueue->sizeOfQueue = posQueue->sizeOfQueue-1;
             return;
         }
-        tmp=tmp->next;
+        tmp=getNext(tmp);
     }
     *error = HASH_MAP_ERROR;
 }
@@ -328,16 +360,14 @@ void hashDestroy(HashMap hashMap, HashMapErrors *error){
         *error = HASH_MAP_NULL_ARGUMENT;
         return;
     }
-    HashMapErrors *err = NULL;
+    QueueErrors* queueErrors = xmalloc(sizeof(*queueErrors));
     for(int i=0; i<hashMap->size;i++){
-        Node tmp= hashMap->table[i];
-        while(tmp){
-            hashmapRemove(hashMap,tmp->key,error);
-            if(*error != HASH_MAP_SUCCESS) {
-                *error = HASH_MAP_ERROR;
-                return;
-            }
-            tmp = hashMap->table[i];
+        Queue tmp= hashMap->table[i];
+        destroyQueue(tmp,queueErrors);
+        if(*queueErrors != Queue_SUCCESS) {
+            *queueErrors = Queue_ERROR;
+            return;
+
         }
     }
     free(hashMap->table);
@@ -350,7 +380,6 @@ int getHashMapSize(HashMap hashMap){
 int getHashMapNumberOfSockets(HashMap hashMap){
     return hashMap->number_of_sockets;
 }
-
 
 
 
