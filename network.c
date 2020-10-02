@@ -267,7 +267,20 @@ SocketID SocketAccept(SocketID sockid) {
     if (NULL == ip) return ILLEGAL_SOCKET_ID;
     int port;
 
-    if (sscanf(message, "%s_%d", ip, &port) != 2) {
+    int sscanf_result_1, sscanf_result_2;
+    bool underscore_found = false;
+    for (int i = 0; i < strlen(message); ++i) {
+        if (message[i] == '_') {
+            underscore_found = true;
+            message[i] = '\0';
+
+            sscanf_result_1 = sscanf(message + i + 1, "%d", &port);
+            sscanf_result_2 = sscanf(message, "%s", ip);
+            break;
+        }
+    }
+
+    if (!underscore_found || sscanf_result_1 != 1 || sscanf_result_2 != 1) {
         free(ip);
         return ILLEGAL_SOCKET_ID;
     }
