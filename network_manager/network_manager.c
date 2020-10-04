@@ -278,6 +278,61 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
     //destroy_socket(to_remove); //this is done in hashmap remove (shouldn't TODO)
 }
 
+/**
+ * Converts tcp packet to ip packet and sends it to it's given destination.
+ * Returns 0 on success, -1 on error.
+ */
+int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
+    if (NULL == packet || NULL == manager || NULL == dst_ip) return -1;
+    int dst_port = packet->dst_port;
+    
+    char* tcp_string = tcp_to_str(packet);
+    if (NULL == tcp_string) return -1;
+
+    IPPacket ip_packet = create_ip_packet(manager->ip, dst_ip, tcp_string);
+    if (NULL == ip_packet) {
+        free(tcp_string);
+        return -1;
+    }
+
+    char* ip_str = ip_to_str(ip_packet);
+    if (NULL == ip_str) {
+        destroy_ip_packet(ip_packet);
+        free(tcp_string);
+        return -1;
+    }
+
+    char* dst_fifo_name = get_in_packet_fifo_name(dst_ip);
+    if (NULL == dst_fifo_name) {
+        destroy_ip_packet(ip_packet);
+        free(tcp_string); free(ip_str);
+        return -1;
+    }
+
+    int dst_fifo_fd = open(dst_fifo_name, O_RDWR);
+    if (-1 == dst_fifo_fd) {
+        printf("Error: destination ip: %s does not exist.\n", dst_ip);
+        free(dst_fifo_name);
+        destroy_ip_packet(ip_packet);
+        free(tcp_string); free(ip_str);
+        return -1;
+    }
+
+    if (write(dst_fifo_fd, ip_str, strlen_t(ip_str)) == -1) {
+        close(dst_fifo_fd);
+        free(dst_fifo_name);
+        destroy_ip_packet(ip_packet);
+        free(tcp_string); free(ip_str);
+        return -1;
+    }
+
+    close(dst_fifo_fd);
+    free(dst_fifo_name);
+    destroy_ip_packet(ip_packet);
+    free(tcp_string); free(ip_str);
+    return 0;
+}
+
 /******************************************
  * Stages of manager loop
  * ****************************************/
