@@ -13,8 +13,8 @@ typedef QueueElement (*copyElem)(QueueElement);
 
 typedef struct Queue_t* Queue;
 
-Queue QueueCreate(int capacity, freeElem free_func);
-void QueueDestroy(Queue q);
+Queue QueueCreate(int capacity);
+void QueueDestroy(Queue q,  freeElem free_func);
 Queue QueueCopy(Queue q, copyElem copy);
 bool enqueue(Queue q, QueueElement element);
 QueueElement dequeue(Queue q);
