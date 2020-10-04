@@ -75,9 +75,9 @@ Status SocketListen(SocketID sockid, int queueLimit);
 /*
  * Establishes a connection with a remote socket (blocking).
  * Parameter foreignAddr - the remote (ip, port) to connect to. 
+ * Socket has to be bound for connecting.
  */
-Status SocketConnect(SocketID sockid, Address foreignAddr); // TODO: in our implementation one has to bind before connecting (so we don't randomize client port)
-															// distinct (by enum) a socket bound+LISTEN and a socket bound+nothing.
+Status SocketConnect(SocketID sockid, Address foreignAddr);
 
 /*
  * Gets a new socket for an incoming client connection.

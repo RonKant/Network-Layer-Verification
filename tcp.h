@@ -5,12 +5,21 @@
  * This file is for everything related to parsing TCP requests
 */
 
-#include "socket.h"
-#include "util_types.h"
+#include "socket_utils.h"
 
 typedef enum {
-    CWR=1, ECE=2, URG=4, ACK=8, PSH=16, RST=32, SYN=64, FIN=128
+    ACK=1, FIN=2, RST=4, SYN=8
 } TCP_FLAGS;
+
+typedef struct {
+    int src_port;
+    int dst_port;
+    int seq_num;
+    int ack_num;
+    char flags;
+    int checksum;
+    char* data;
+} * TCPPacket;
 
 /**
  * Converts a string representation into a tcp packet struct (allocated).
@@ -32,12 +41,12 @@ void print_tcp_packet(TCPPacket packet);
 /**
  * (for now, a simplified) checksum calculation
  */ 
-int calc_checksum(Socket socket, TCPPacket packet);
+int calc_checksum(TCPPacket packet);
 
 /**
- * Constructs a packet for acknowledging byets up to it's last ack_num (inclusive)
+ * Constructs a packet from given fields. ack num and seq num are updated according to data in socket.
  */
-TCPPacket construct_ack_packet(Socket socket);
+TCPPacket construct_packet(Socket socket, char* data, char flags, char dst_port);
 
 /**
  * frees all memory associated with packet

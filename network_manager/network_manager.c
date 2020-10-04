@@ -578,6 +578,11 @@ int check_and_handle_connection_queue(SocketID sock_id, NetworkManager manager) 
     return 0;
 }
 
+int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
+    // Check socket connect fifo. If there is something and socket is bound AND LISTENING, create new connection 
+    // in send SYN mode, and insert it to connection queue and hashmap.
+}
+
 int check_and_handle_out_fifo(SocketID sock_id, NetworkManager manager) {
     // Check socket out fifo for RAW USER STRINGS. If there is something: push into socket outgoing queue.
 
@@ -586,6 +591,7 @@ int check_and_handle_out_fifo(SocketID sock_id, NetworkManager manager) {
 
 int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
     // Check end fifo. If there is something: close socket and free it's memory.
+    // If socket is closed, write into end fifo and remove it.
 
     return 0;
 }
@@ -596,12 +602,19 @@ int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
     return 0;
 }
 
+int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager manager) {
+    // Handles sending status messages, such as SYN, SYN+ACK, FIN, FIN+ACK, ACK (?)
+}
+
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     // printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
     int return_value = 0;
 
     if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
         return_value = check_and_handle_listen_request(sock_id, manager);
+        if (return_value != 0) return return_value;
+
+        return_value = check_and_handle_connect_request(sock_id, manager);
         if (return_value != 0) return return_value;
 
         return_value = check_and_handle_connection_queue(sock_id, manager);
@@ -615,6 +628,9 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     if (return_value != 0) return return_value;
     
     return_value = check_and_handle_send_window(sock_id, manager);
+    if (return_value != 0) return return_value;
+
+    return_value = check_and_handle_outgoing_status_messages(sock_id, manager);
     if (return_value != 0) return return_value;
 
     return 0; // mock
