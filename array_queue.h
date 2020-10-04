@@ -1,6 +1,7 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,20 +9,21 @@ typedef void* QueueElement;
 typedef void* Parameter;
 typedef bool (*conditionFunction)(QueueElement, Parameter);
 typedef void (*freeElem)(QueueElement);
+typedef QueueElement (*copyElem)(QueueElement);
 
 typedef struct Queue_t* Queue;
 
-Queue QueueCreate(int capacity);
-void QueueDestroy(Queue q, freeElem free_func);
-Queue QueueCopy(Queue q);
+Queue QueueCreate(int capacity, freeElem free_func);
+void QueueDestroy(Queue q);
+Queue QueueCopy(Queue q, copyElem copy);
 bool enqueue(Queue q, QueueElement element);
 QueueElement dequeue(Queue q);
 bool QueueIsFull(Queue q);
 bool QueueIsEmpty(Queue q);
 int QueueSize(Queue q);
 int QueueCapacity(Queue q);
-QueueElement QueueFindByCondition(Queue q, conditionFunction cond);
-QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond);
+QueueElement QueueFindByCondition(Queue q, conditionFunction cond, Parameter param);
+QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond, Parameter param);
 
 QueueElement QueueGetFirst(Queue q);
 QueueElement QueueGetNext(Queue q);
@@ -32,4 +34,4 @@ QueueElement QueueGetNext(Queue q);
         item = QueueGetNext(queue))
 
 
-#endinf QUEUE_H
+#endif // QUEUE_H

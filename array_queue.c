@@ -1,12 +1,15 @@
+#include <stdio.h>
+
 #include "array_queue.h"
 
 struct Queue_t {
     int head, tail, size, capacity;
     QueueElement* array;
     int iterator;
-}
+    freeElem free_func;
+};
 
-Queue QueueCreate(int capacity) {
+Queue QueueCreate(int capacity, freeElem free_func) {
     if (capacity <= 0) return NULL;
     Queue queue = (Queue)malloc(sizeof(*queue));
     if (NULL == queue) return NULL;
@@ -14,6 +17,8 @@ Queue QueueCreate(int capacity) {
     queue->capacity = capacity;
     queue->head = queue->size = 0;
     queue->tail = capacity - 1;
+
+    queue->free_func = free_func;
 
     queue->array = (QueueElement*)malloc(sizeof(QueueElement) * capacity);
     if (NULL == queue->array) {
@@ -25,21 +30,25 @@ Queue QueueCreate(int capacity) {
     return queue;
 }
 
-void QueueDestroy(Queue q, freeElem free_func) {
-    if (NULL == q || NULL == free_func) return;
+void QueueDestroy(Queue q) {
+    if (NULL == q) return;
     if (NULL == q->array) return;
     
-    QUEUE_FOR_EACH(item, q) {
-        free_func(item);
+    if (NULL != q->free_func) {
+        QUEUE_FOR_EACH(item, q) {
+            (q->free_func)(item);
+        }
     }
+
     free(q->array);
     free(q);
 }
 
-Queue QueueCopy(Queue q) {
-    Queue copy_q = QueueCreate(q->capacity);
+Queue QueueCopy(Queue q, copyElem copy) {
+    Queue copy_q = QueueCreate(q->capacity, q->free_func);
     QUEUE_FOR_EACH(item, q) {
-        if (false == copy_q->enqueue(item)) {
+        QueueElement item_copy = copy(item);
+        if (false == enqueue(copy_q, item_copy)) {
             QueueDestroy(copy_q);
             return NULL;
         }
@@ -50,9 +59,9 @@ Queue QueueCopy(Queue q) {
 bool enqueue(Queue q, QueueElement element) {
     if (QueueIsFull(q)) return false;
 
-    queue->tail = (queue->tail + 1) % (queue->capacity);
-    (queue->array)[queue->tail] = element;
-    queue->size++;
+    q->tail = (q->tail + 1) % (q->capacity);
+    (q->array)[q->tail] = element;
+    q->size++;
 
     return true;
 }
@@ -60,20 +69,20 @@ bool enqueue(Queue q, QueueElement element) {
 QueueElement dequeue(Queue q) {
     if (QueueIsEmpty(q)) return NULL;
 
-    QueueElement element = (queue->array)[queue->head];
-    (queue->array)(queue->head) = NULL;
-    queue->head = (queue->head + 1) % (queue->capacity);
+    QueueElement element = (q->array)[q->head];
+    (q->array)[q->head] = NULL;
+    q->head = (q->head + 1) % (q->capacity);
 
     q->size--;
     return element;
 }
 
 bool QueueIsFull(Queue q) {
-    return queue->size == queue->capacity;
+    return q->size == q->capacity;
 }
 
 bool QueueIsEmpty(Queue q) {
-    return 0 == queue->size;
+    return 0 == q->size;
 }
 
 int QueueSize(Queue q) {
@@ -84,26 +93,28 @@ int QueueCapacity(Queue q) {
     return q->capacity;
 }
 
-QueueElement QueueFindByCondition(Queue q, conditionFunction cond) {
+QueueElement QueueFindByCondition(Queue q, conditionFunction cond, Parameter param) {
     QUEUE_FOR_EACH(item, q) {
-        if (cond(item)) return item;
+        if (cond(item, param)) return item;
     }
     return NULL;
 }
 
-QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond) {
-    Queue temp_q = QueueCreate(q->capacity);
+QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond, Parameter param) {
+    Queue temp_q = QueueCreate(q->capacity, q->free_func);
     QueueElement removed = NULL;
     QUEUE_FOR_EACH(item, q) {
-        if (NULL != removed || false == cond(item)) {
-            enqueue(temp_q, item))
-        } else if (cond(item)) {
+        if (NULL != removed || false == cond(item, param)) {
+            enqueue(temp_q, item);
+        } else if (cond(item, param)) {
             removed = item;
         }
     }
 
-    for (int i = 0; i < q->size; ++i) dequeue(q);
+    for (; q->size > 0;) dequeue(q);
     QUEUE_FOR_EACH(item, temp_q) enqueue(q, item);
+    for (; temp_q->size > 0;) dequeue(temp_q);
+    QueueDestroy(temp_q);
     return removed;
 }
 
@@ -112,7 +123,7 @@ QueueElement QueueGetFirst(Queue q) {
     if (QueueIsEmpty(q)) return NULL;
 
     q->iterator = 0;
-    return (queue->array)[queue->front];
+    return (q->array)[q->head];
 }
 
 QueueElement QueueGetNext(Queue q) {
@@ -121,6 +132,6 @@ QueueElement QueueGetNext(Queue q) {
     q->iterator++;
     if (q->iterator == q->size) return NULL;
 
-    return (queue->array)[(queue->front + q->iterator) % (q->capacity)];
+    return (q->array)[(q->head + q->iterator) % (q->capacity)];
 
 }
