@@ -15,38 +15,34 @@
 #define MAX_HANDLES_PER_EPOCH 10
 #define MAX_BIND_REQUEST_SIZE 100
 
-const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%08s%08s%";
+IPPacket read_ip_packet_from_file(int fd) {
+    char total_length_str[11];
 
-// Use tomer's version in ip.c later
-IPPacket str_to_ip(char* s) {
-    IPPacket result = (IPPacket)malloc(sizeof(*result));
-    int scanned = sscanf(s, ip_str_repr,
-                         &(result->version),
-                         &(result->ihl),
-                         &(result->dscp_and_ecn),
-                         &(result->total_length),
-                         &(result->id),
-                         &(result->flags_and_offset),
-                         &(result->ttl),
-                         &(result->protocol),
-                         &(result->header_checksum),
-                         &(result->src_ip),
-                         &(result->dst_ip));
+    int read_length = read_entire_message(fd, total_length_str, 10);
+    if (10 != read_length) return NULL;
 
-    if (scanned != 11) { // if scan failed -- error
-        free(result);
-        return NULL;
-    }
-    char* s_data = s + (result->ihl * 32);      //s_data is the pointer of the data section in s. ihl is the length of the header
-    result->data = (char*)malloc(strlen(s_data) + 1);
+    total_length_str[11] = '\0';
 
-    if (result -> data == NULL) {
-        free(result);
+    int total_length;
+
+    if (sscanf(total_length, "%d", &total_length) < 1) return NULL;
+
+    char* packet_str = (char*)malloc(total_length + 1);
+    if (NULL == packet_str) return NULL;
+
+    for (int i = 0; i < 10; ++i) packet_str[i] = total_length_str;
+
+    read_length = read_nonzero_entire_message(fd, packet_str + 10, total_length - 10);
+    if (total_length - 10 != read_length) {
+        free(packet_str);
         return NULL;
     }
 
-    strcpy(result->data, s_data);
+    packet_str[total_length] = '\0';
 
+    IPPacket result = str_to_ip(packet_str);
+
+    free(packet_str);
     return result;
 }
 
