@@ -31,6 +31,8 @@
 #define LISTEN_SOCKET_READ_FIFO_PREFIX "vnetwork_listen_socket_read_"
 #define LISTEN_SOCKET_WRITE_FIFO_PREFIX "vnetwork_listen_socket_write_"
 #define ACCEPT_SOCKET_READ_FIFO_PREFIX "vnetwork_accept_socket_read_"
+#define CONNECT_SOCKET_READ_FIFO_PREFIX "vnetwork_connect_soket_read_"
+#define CONNECT_SOCKET_WRITE_FIFO_PREFIX "vnetwork_connect_socket_write_"
 #define OUT_DATA_SOCKET_FIFO_PREFIX "vnetwork_out_data_"
 #define IN_DATA_SOCKET_FIFO_PREFIX "vnetwork_in_data_socket_read_"
 #define END_SOCKET_WRITE_FIFO_PREFIX "vnetwork_end_socket_write_"
@@ -84,6 +86,10 @@ char* get_listen_fifo_read_end_name(SocketID sock_id);
 char* get_listen_fifo_write_end_name(SocketID sock_id);
 
 char* get_accept_fifo_write_end_name(SocketID sock_id);
+
+char* get_connect_fifo_read_end_name(SocketID sock_id);
+
+char* get_connect_fifo_write_end_name(SocketID sock_id);
 
 char* get_out_fifo_read_end_name(SocketID sock_id);
 

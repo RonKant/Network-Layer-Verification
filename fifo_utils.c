@@ -115,6 +115,16 @@ char* get_accept_fifo_write_end_name(SocketID sock_id) {
     return construct_full_socket_fifo_name(ACCEPT_SOCKET_READ_FIFO_PREFIX, sock_id);
 }
 
+char* get_connect_fifo_read_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(CONNECT_SOCKET_READ_FIFO_PREFIX, sock_id);
+
+}
+
+char* get_connect_fifo_write_end_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(CONNECT_SOCKET_WRITE_FIFO_PREFIX, sock_id);
+
+}
+
 char* get_out_fifo_read_end_name(SocketID sock_id) {
     return construct_full_socket_fifo_name(OUT_DATA_SOCKET_FIFO_PREFIX, sock_id);
 }

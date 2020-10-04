@@ -9,6 +9,7 @@
 
 #define EMPTY_IP NULL
 #define EMPTY_PORT -1
+#define MAX_IP_LENGTH 16
 
 void init_empty_socket_id(SocketID sock_id);
 

@@ -46,6 +46,12 @@ char* ip_to_str(IPPacket packet);
  */
 bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst);
 
+IPPacket create_empty_IP_packet() {
+    IPPacket result = (IPPacket)malloc(sizeof(*result));
+
+    
+}
+
 /**
  *
  * @param ip_header -
