@@ -517,21 +517,50 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     return 0;
 }
 
-int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
-    /*
-    * If socket is a listener and has a pending connection, and accept fifo is empty - put connection in accept fifo.
-    * Check socket out fifo for RAW USER STRINGS. If there is something: push into socket outgoing queue.
-    * Check end fifo. If there is something: close socket and free it's memory.
-    * Check socket out queue/buffer. If (condition) - resend packet of unacked data.
-    */
+int check_and_handle_connection_queue(SocketID sock_id, NetworkManager manager) {
+    // If socket has a pending connection, and accept fifo is empty - put connection in accept fifo.
 
+    return 0;
+}
+
+int check_and_handle_out_fifo(SocketID sock_id, NetworkManager manager) {
+    // Check socket out fifo for RAW USER STRINGS. If there is something: push into socket outgoing queue.
+
+    return 0;
+}
+
+int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
+    // Check end fifo. If there is something: close socket and free it's memory.
+
+    return 0;
+}
+
+int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
+    // Check socket out queue/buffer. If (condition) - resend packet of unacked data.
+
+    return 0;
+}
+
+int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     // printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
     int return_value = 0;
 
     if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
         return_value = check_and_handle_listen_request(sock_id, manager);
         if (return_value != 0) return return_value;
+
+        return_value = check_and_handle_connection_queue(sock_id, manager);
+        if (return_value != 0) return return_value;
+    } else if (get_socket_state(sock_id) == CONNECTED_SOCKET) {
+        return_value = check_and_handle_out_fifo(sock_id, manager);
+        if (return_value != 0) return return_value;
     }
+
+    return_value = check_and_handle_socket_end_fifo(sock_id, manager);
+    if (return_value != 0) return return_value;
+    
+    return_value = check_and_handle_send_window(sock_id, manager);
+    if (return_value != 0) return return_value;
 
     return 0; // mock
 }

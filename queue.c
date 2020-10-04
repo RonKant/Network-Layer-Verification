@@ -9,12 +9,6 @@
 //#include "seahorn/seahorn.h"
 extern int nd(void);
 
-struct Node_t
-{
-    Element value;
-    Node next;
-};
-
 Element getValue(Node Node){
     if(Node == NULL)
         return NULL;

@@ -17,6 +17,12 @@ typedef bool (*compareElem)(Element,Element);
 typedef void (*freeElem)(Element);
 typedef Element (*copyElem)(Element);
 
+struct Node_t
+{
+    Element value;
+    struct Node_t * next;
+};
+
 typedef struct Node_t *Node;
 Element getValue(Node node);
 void* getKey(Node node);

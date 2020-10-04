@@ -155,7 +155,7 @@ Socket create_new_socket(){
 	s->recv_window = (char*)malloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)malloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
-	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
+	s->connections = createQueue_g(compare_socket, destroy_socket, copy_socket);
 
 	if (NULL == s->send_window
 		|| NULL == s->recv_window

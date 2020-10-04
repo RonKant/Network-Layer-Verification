@@ -181,16 +181,26 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
     hashMap->number_of_sockets++;
     return HASH_MAP_SUCCESS;
 }
+
 Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
     int pos = hashCode(hashMap,key);
     Queue posQueue = hashMap->table[pos];
 
-    QUEUE_FOR_EACH(queue_item, posQueue) {
-        if (compareKeys(key, ((DictElement)(queue_item))->key)) {
-            if (NULL != error) *error = HASH_MAP_SUCCESS;
-            return ((DictElement)(queue_item))->socket;
+    Node temp = posQueue->head;
+    while (temp != NULL) {
+        DictElement value = temp->value;
+        if (compareKeys(value->key, key)) {
+            return value->socket;
         }
+        temp = temp->next;
     }
+
+    // QUEUE_FOR_EACH(queue_item, posQueue) {
+    //     if (compareKeys(key, ((DictElement)(queue_item))->key)) {
+    //         if (NULL != error) *error = HASH_MAP_SUCCESS;
+    //         return ((DictElement)(queue_item))->socket;
+    //     }
+    // }
 
     if (NULL != error) *error = HASH_MAP_SOCKET_NOT_FOUND;
     return NULL;
