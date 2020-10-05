@@ -9,11 +9,9 @@
 #include "util_types.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "queue.h"
-
+#include "array_queue.h"
 //typedef struct Key_t *Key;
 
-typedef struct DictElement_t *DictElement;
 typedef struct HashMap_t *HashMap;
 
 typedef enum {
@@ -33,9 +31,6 @@ bool socketCompare(Socket,Socket,HashMapErrors *error);
 Socket socketCopy(Socket socket,HashMapErrors *error);
 HashMapErrors socketFree(Socket socket);
 
-bool dictElementCompare(DictElement d1,DictElement d2);
-DictElement dictElementCopy(DictElement d);
-void dictElementFree(DictElement d);
 
 typedef SocketID (*copyKey)(SocketID,HashMapErrors *error);
 typedef HashMapErrors (*freeKey)(SocketID);
@@ -48,24 +43,22 @@ HashMapErrors keyFree(SocketID);
 HashMap createHashMap(int size);
 int hashCode(HashMap hashMap, SocketID key);
 HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket);
-Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error);
+Socket getSocket(HashMap hashMap,SocketID key);
 void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error);
 void hashDestroy(HashMap hashMap, HashMapErrors *error);
-int getHashMapSize(HashMap hashMap);
 int getHashMapNumberOfSockets(HashMap hashMap);
 
 SocketID hashMapGetFirst(HashMap hashMap);
 void hashMapSetFirst(HashMap hashMap);
 SocketID hashMapGetNext(HashMap hashMap);
 
+void hashMapSetSize(HashMap hashMap);
+int getHashMapSize(HashMap hashMap);
+bool HashMapSocketRemoveCond(Socket socket, SocketID socketId);
 
 #define HASH_MAP_FOREACH(sock_id, hashmap) \
     for (SocketID sock_id = hashMapGetFirst(hashmap); \
         sock_id != NULL; \
         sock_id = hashMapGetNext(hashmap))
-
-void* xmalloc(size_t sz);
-int strcmp_t(char* str1,char* str2);
-char* strcpy_t(char* dest, char* source);
 
 #endif //PROJECT_HASHMAP_H
