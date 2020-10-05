@@ -16,17 +16,11 @@
 */
 typedef struct {
 
-    int version;
-    int ihl;
-    int dscp_and_ecn;
-    int total_length;
-    int id;
-    int flags_and_offset;
-    int ttl;
-    int protocol;
+
+    long long total_length;
+    char src_ip[16];
+    char dst_ip[16];
     int header_checksum;
-    char* src_ip;
-    char* dst_ip;
     char* data; // the message itself, after the header
 } * IPPacket;
 
@@ -42,6 +36,10 @@ IPPacket str_to_ip(char* s);
  */
 char* ip_to_str(IPPacket packet);
 
+IPPacket create_ip_packet(char* str, char* dst);
+
+void destroy_ip_packet(IPPacket ipPacket);
+
 /**
  * Sends a packet immediately (skips/after window mechanism)
  */
@@ -54,5 +52,6 @@ bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst);
  * @return true if send the packet, false if fail
  */
 bool handle_ip_message(char* ip_header, HashMap hashMap);
+void int_to_str(char* str, int size_of_str, long n);
 
 #endif //CODE_IP_H
