@@ -14,7 +14,7 @@
 #include "Functions.h"
 #include "array_queue.h"
 
-#define QUEUE_SIZE_HASH
+#define QUEUE_SIZE_HASH 200
 
 //#include "seahorn/seahorn.h"
 int offset = 0;
@@ -122,7 +122,7 @@ Socket getSocket(HashMap hashMap,SocketID key){
         return NULL;
     if (getHashMapNumberOfSockets(hashMap) == 0)
         return NULL;
-    int pos = 0;
+    int pos = hashCode(hashMap, key);
     Queue posQueue = hashMap->table[pos];
     for(int i=0; i<QueueSize(posQueue); i=i+1){
         if(QueueGetElement(posQueue,i) != NULL){

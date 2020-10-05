@@ -235,7 +235,7 @@ void unlink_and_clean_manager(NetworkManager manager) {
     free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
 
     HASH_MAP_FOREACH(sock_id, manager->sockets) {
-        Socket sock = getSocket(manager->sockets, sock_id, NULL);
+        Socket sock = getSocket(manager->sockets, sock_id);
         if (NULL != sock) {
             destroy_socket_fifos(sock);
         }
@@ -267,7 +267,7 @@ int terminate_manager(NetworkManager manager) {
 }
 
 void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
-    Socket to_remove = getSocket(manager->sockets, sock_id, NULL);
+    Socket to_remove = getSocket(manager->sockets, sock_id);
     if (NULL == to_remove) {
         return; // nothing to destroy.
     }
@@ -384,7 +384,7 @@ int handle_out_requests_fifo(NetworkManager manager) {
  * Checks whether a given port is free for binding.
  */
 bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
-    Socket socket_on_target_port = getSocket(manager->sockets, sock_id, NULL);
+    Socket socket_on_target_port = getSocket(manager->sockets, sock_id);
     return (socket_on_target_port == NULL);
 }
 
@@ -526,11 +526,11 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
-    Socket sock = getSocket(manager->sockets, sock_id, NULL);
+    Socket sock = getSocket(manager->sockets, sock_id);
     if (sock == NULL || sock->state == LISTEN) {
         reply = REQUEST_DENIED_FIFO;
     } else {
-        sock->connections = createQueue_g(compare_socket, destroy_socket, copy_socket);
+        sock->connections = QueueCreate(*request);
         if (sock->connections == NULL) {
             reply = REQUEST_DENIED_FIFO;
         } else {
@@ -557,7 +557,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         printf("Error: writing response %c to client on port %d failed.\n", reply, sock_id->src_port);
         if (reply == REQUEST_GRANTED_FIFO) {
             sock->state = CLOSED;
-            destroyQueue(sock->connections, NULL);
+            QueueDestroy(sock->connections, NULL);
             sock->connections = NULL;
         }
     }
@@ -629,7 +629,7 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     printf("Received connect(%c) request from port: %d to (%s, %d).\n", *request, sock_id->src_port, dst_ip, dst_port);
 
 
-    Socket sock = getSocket(manager->sockets, sock_id, NULL);
+    Socket sock = getSocket(manager->sockets, sock_id);
     printf("1.\n");
     if (sock == NULL || sock->state == LISTEN) {
         printf("2.\n");
