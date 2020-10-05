@@ -8,12 +8,6 @@
 #include "network.h"
 #include "util_types.h"
 
-#define IS_EMPTY_IP(ip) \
-    ((ip)[0] == "e")
-
-#define IP_SET_EMPTY(ip) \
-    ((ip)[0] = "e"); ((ip)[MAX_IP_LENGTH] = '\0')
-
 #define EMPTY_IP NULL
 #define EMPTY_PORT -1
 #define MAX_PORT_STRING_LENGTH
@@ -21,6 +15,15 @@
 #define SOCKET_SEND_AGAIN_TIME 1
 
 #define DIFF2SEC(DIFF) ((double)(DIFF)) / CLOCKS_PER_SEC
+
+bool is_empty_ip(char* ip) {
+    return ip[0] == 'e';
+}
+
+void ip_set_empty(char* ip) {
+    for (int i = 0; i < MAX_IP_LENGTH; ++i) ip[i] = 'e';
+    ip[MAX_IP_LENGTH] = '\0';
+}
 
 void init_empty_socket_id(SocketID sock_id);
 

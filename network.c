@@ -348,6 +348,8 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
         Status return_value;
         if (answer == REQUEST_GRANTED_FIFO) {
             return_value = SUCCESS;
+            strcpy(sockid->dst_ip, foreignAddr->addr);
+            sockid->dst_port = foreignAddr->port;
         } else {
             return_value = REQUEST_DENIED;
         }

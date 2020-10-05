@@ -59,5 +59,16 @@ int stopManager(char* ip);
  */
 void close_socket(NetworkManager manager, SocketID sock_id);
 
+/**
+ * Writes a response to a client fifo for his connect request (successful).
+ * Returns 0 on success, otherwise -1.
+ */
+int notify_connect_client(NetworkManager manager, Socket socket);
+
+/**
+ * Writes a response to a client fifo for his accept request (successful).
+ * Returns 0 on success, otherwise -1.
+ */
+int notify_accept_client(NetworkManager manager, Socket socket);
 
 #endif // NETWORK_MANAGER_H

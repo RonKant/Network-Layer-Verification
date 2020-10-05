@@ -206,7 +206,8 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
     }
 
     if (NULL != reply) {
-        send_TCP_packet(reply, manager, id->dst_ip);
+        if (send_TCP_packet(reply, manager, id->dst_ip) == 0)
+            sock->last_send_clock = clock();
     }
 
     free(id);
@@ -644,10 +645,26 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
             TCPPacket syn_packet = construct_packet(sock, "", SYN, sock_id->dst_port);
             if (NULL == syn_packet) return 0;
 
+            syn_packet->seq_num = sock->seq_of_first_send_window;
+
             if (0 == send_TCP_packet(syn_packet, manager, sock_id->dst_ip)) {
                 sock->last_send_clock = clock();
             }
             destroy_tcp_packet(syn_packet);
+        }
+    } else if (sock->state == SYN_RECEIVED) {
+        if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
+
+            TCPPacket syn_ack_packet = construct_packet(sock, "", SYN | ACK, sock_id->dst_port);
+            if (NULL == syn_ack_packet) return 0;
+
+            syn_ack_packet->seq_num = sock->seq_of_first_send_window;
+            syn_ack_packet->ack_num = sock->seq_of_first_recv_window;
+
+            if (0 == send_TCP_packet(syn_ack_packet, manager, sock_id->dst_ip)) {
+                sock->last_send_clock = clock();
+            }
+            destroy_tcp_packet(syn_ack_packet);
         }
     }
 
@@ -772,6 +789,53 @@ int managerLoop(NetworkManager manager) {
         }
 
     }
+}
+
+
+int notify_connect_client(NetworkManager manager, Socket socket) {
+    SocketID old_id = copy_socket_id(socket->id);
+    if (NULL == old_id) return -1;
+    old_id->dst_port = EMPTY_PORT;
+    ip_set_empty(old_id->dst_ip);
+
+    char* connect_fifo_name = get_connect_fifo_read_end_name(old_id);
+
+    if (NULL == connect_fifo_name) {
+        free(old_id);
+        return -1;
+    }
+
+    int result = write_char_to_fifo_name(connect_fifo_name, REQUEST_GRANTED_FIFO);
+
+    free(connect_fifo_name);
+    free(old_id);
+
+    return result;
+}
+
+int notify_accept_client(NetworkManager manager, Socket socket) {
+    SocketID old_id = copy_socket_id(socket->id);
+    if (NULL == old_id) return -1;
+    old_id->dst_port = EMPTY_PORT;
+    ip_set_empty(old_id->dst_ip);
+
+    char* accept_fifo_name = get_accept_fifo_write_end_name(old_id);
+
+    if (NULL == accept_fifo_name) {
+        free(old_id);
+        return -1;
+    }
+
+    char reply_string[MAX_SOCKET_STRING_REPR_SIZE];
+    sprintf(reply_string, "%s_%d", (socket->id)->dst_ip, (socket->id)->dst_port);
+
+    int result = write_string_to_fifo_name(accept_fifo_name, reply_string);
+    if (result == 0) result = write_char_to_fifo_name(accept_fifo_name, '\0');
+
+    free(accept_fifo_name);
+    free(old_id);
+
+    return result;
 }
 
 // int stopManager(char* ip);
