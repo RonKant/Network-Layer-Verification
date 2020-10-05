@@ -489,22 +489,22 @@ int handle_bind_fifo(NetworkManager manager) {
 int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     // Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
     // return 0 on non critical errors so the entire system does not crash.
-
+    // printf("1.\n");
     char* listen_fifo_write_name = get_listen_fifo_write_end_name(sock_id);
     if (NULL == listen_fifo_write_name) return 0;
-
+    // printf("2.\n");
     char* accept_fifo_name = get_accept_fifo_write_end_name(sock_id);
     if (NULL == accept_fifo_name) {
         free(listen_fifo_write_name);
         return 0;
     }
-
+    // printf("3.\n");
     int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDWR);
     if (-1 == listen_fifo_write_fd) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
-
+    // printf("4.\n");
     char request[1];
     int read_length = read_entire_message(listen_fifo_write_fd, request, 1);
     if (read_length == -1 || read_length == 0) {
@@ -512,7 +512,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
-
+    // printf("5.\n");
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
@@ -637,7 +637,6 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         }
     }
 
-    free(dst_ip);
     return BREAK_ITERATION;
 }
 
