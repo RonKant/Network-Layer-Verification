@@ -103,6 +103,7 @@ int ip_calc_checksum(char* src, char* dst){
 }
 
 IPPacket create_ip_packet(char* src, char* dst){
+    if (strlen(src)!=16 || strlen(dst)!=16){ return NULL;}
     IPPacket result = (IPPacket)xxmalloc(sizeof(*result));
     result->header_checksum = ip_calc_checksum(src,dst);
     strcpy1(result->src_ip,src,0);
