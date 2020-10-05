@@ -144,6 +144,7 @@ SocketID hashMapGetFirst(HashMap hashMap){
     if (getHashMapSize(hashMap) == 0) {
         return NULL;
     }
+
     for (int queue_num = 0; queue_num < hashMap->size; queue_num = queue_num +1) {
         Socket element_from_queue = (Socket)(QueueGetFirst((hashMap->table)[queue_num]));
         if (element_from_queue != NULL) {

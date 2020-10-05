@@ -393,15 +393,8 @@ bool can_bind_new_socket(NetworkManager manager, SocketID sock_id) {
  * Entering here is assuming port is already free.
  */
 int bind_new_socket(NetworkManager manager, SocketID sock_id) {
-    SocketID id_copy = copy_socket_id(sock_id);
-    if (id_copy == NULL) {
-        return -1;
-    }
-
-    Socket new_socket = create_bound_socket(id_copy);
+    Socket new_socket = create_bound_socket(sock_id);
     int result = 0;
-
-    destroy_socket_id(id_copy);
 
     if (NULL == new_socket) {
         printf("Error: failed allocating a new listening socket.\n");
@@ -416,7 +409,6 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
             result = 0;
         }
     }
-    destroy_socket(new_socket);
     return result; // mock
 }
 
@@ -451,6 +443,7 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
 
         if (bind_result != 0) {
             result = -1; reply = REQUEST_DENIED_FIFO;
+            destroy_socket_id(sock_id);
         } else {
             result = 0; reply = REQUEST_GRANTED_FIFO;
             printf("\tBind successful.\n");
@@ -468,9 +461,7 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     }
 
     free(client_fifo_name);
-    destroy_socket_id(sock_id);
     return result;
-
 }
 
 /**
@@ -508,7 +499,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         return 0;
     }
 
-    int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDONLY | O_NONBLOCK);
+    int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDWR);
     if (-1 == listen_fifo_write_fd) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
@@ -516,7 +507,6 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
     char request[1];
     int read_length = read_entire_message(listen_fifo_write_fd, request, 1);
-
     if (read_length == -1 || read_length == 0) {
         close(listen_fifo_write_fd);
         free(listen_fifo_write_name); free(accept_fifo_name);
@@ -682,9 +672,10 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
 }
 
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
-    printf("\t(%s, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
+    // printf("\t(%s, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
     int return_value = 0;
     if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
+
         return_value = check_and_handle_listen_request(sock_id, manager);
         if (return_value != 0) return return_value;
 
@@ -784,7 +775,6 @@ int managerLoop(NetworkManager manager) {
         if (handle_in_packets_fifo(manager) != 0) {
             return -1;
         }
-
         // currently broken because hashmap iterator does not work (because of badly initialized table entries)
 
         // printf("Connected sockets:\n");

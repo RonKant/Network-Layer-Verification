@@ -10,6 +10,7 @@
 #include "array_queue.h"
 //#include<seahorn/seahorn.h>
 
+
 void init_empty_socket_id(SocketID sock_id) {
     sock_id->dst_ip = EMPTY_IP;
     sock_id->src_ip = EMPTY_IP;
@@ -86,7 +87,7 @@ Socket create_bound_socket(SocketID sock_id) {
 
     result->state = CLOSED;
 
-    result->id = copy_socket_id(sock_id);
+    result->id = sock_id;
 
     if (result->id == NULL) {
         destroy_socket(result);
