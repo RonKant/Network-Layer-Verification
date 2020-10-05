@@ -620,27 +620,21 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
 
 
     Socket sock = getSocket(manager->sockets, sock_id);
-    printf("1.\n");
     if (sock == NULL || sock->state == LISTEN) {
-        printf("2.\n");
         free(dst_ip);
         return 0;
     } else {
-        printf("3.\n");
         hashmapRemove(manager->sockets, sock_id, NULL);
-        printf("4.\n");
         sock->state = SYN_SENT;
         (sock->id)->dst_ip = dst_ip;
         (sock->id)->dst_port = dst_port;
         sock_id->dst_ip = dst_ip;
         sock_id->dst_port = dst_port;
-        printf("5.\n");
         if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock_id, sock)) {
             printf("Error: hash map insertion error in socket connect");
             free(dst_ip);
             return -1;
         }
-        printf("6.\n");
     }
 
     free(dst_ip);

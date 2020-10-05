@@ -47,7 +47,7 @@ SocketID copyKeyFunction(SocketID key,HashMapErrors *error){
         if (NULL != error) *error = HASH_MAP_NULL_ARGUMENT;
         return NULL;
     }
-    *error =    HASH_MAP_SUCCESS;
+    if (NULL != error) *error =    HASH_MAP_SUCCESS;
     return copy_socket_id(key);
 
     ////*needed_//assume(key != NULL);
@@ -197,7 +197,7 @@ void hashmapRemove(HashMap hashMap, SocketID key, HashMapErrors *error) {
     Queue posQueue = hashMap->table[pos];
     if(QueueRemoveByCondition(posQueue, (conditionFunction) HashMapSocketRemoveCond, key)!=NULL)
         hashMap->number_of_sockets = hashMap->number_of_sockets-1;
-    *error = HASH_MAP_SUCCESS;
+    if (NULL != error) *error = HASH_MAP_SUCCESS;
 }
 void hashDestroy(HashMap hashMap, HashMapErrors *error){
     if(!hashMap)
