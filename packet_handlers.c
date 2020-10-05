@@ -2,17 +2,13 @@
 #include <time.h>
 
 #include "packet_handlers.h"
-#include "tcp.h"
-#include "socket.h"
 #include "network.h"
-#include "util_types.h"
 #include "connection_queue.h"
 
-TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip) {
+TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
 
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {
         close_socket(socket);
-        destroyPacket(packet);
         return NULL;
     }
 
@@ -56,15 +52,12 @@ TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip) {
     return response_packet;
 }
 
-TCPPacket generate_rst_packet(Socket socket) {
-    TCPPacket result = pack_data(socket, "", calc_next_send_seq(socket)); // take an empty data packet and change it's fields.
-                                                                                // seq_num does not matter for RST only packet.
+TCPPacket generate_rst_packet(Socket socket, int dst_port) {
+    TCPPacket result = construct_packet(socket, "", RST, dst_port);
+
     if (result == NULL) {
         return NULL;
     }
-
-    result->flags |= RST;
-    result->checksum = calc_checksum(socket, result); // calculate checksum again since we changed the flags
 
     return result;
 }
@@ -87,10 +80,10 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip) {
     //     } // let existing subconnection handle the packet
     // }
 
-    if (!(packet->flags & SYN)) {return generate_rst_packet(socket);}
+    if (!(packet->flags & SYN)) {return generate_rst_packet(socket, packet->src_port);}
     // trying to create a new connection
 
-    if (connQueueSize(socket->connections) == socket->max_connections) {return generate_rst_packet(socket);} // full
+    if (connQueueSize(socket->connections) == socket->max_connections) {return generate_rst_packet(socket, packet->src_port);} // full
 
     srand(time(NULL));
     int my_seq = rand();

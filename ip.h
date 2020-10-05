@@ -40,6 +40,8 @@ IPPacket create_ip_packet(char* src, char* dst, char* data);
 
 void destroy_ip_packet(IPPacket ipPacket);
 
+int calc_ip_checksum(IPPacket packet);
+
 /**
  * Sends a packet immediately (skips/after window mechanism)
  */

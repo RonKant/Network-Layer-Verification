@@ -1,7 +1,8 @@
 #ifndef __PACKET_HANDLERS_H
 #define __PACKET_HANDLERS_H
 
-#include "util_types.h"
+#include "network_manager/network_manager.h"
+#include "tcp.h"
 
 /**
  * This module contains a packet handling function for every possible TCP state
@@ -15,7 +16,7 @@
  * 
  * packet is freed in the process.
  */
-TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip);
+TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager);
 
 /**
  * Specific message handling functions for all TCP states

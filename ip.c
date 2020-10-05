@@ -98,17 +98,17 @@ char* ip_to_str(IPPacket packet) {
     return result;
 }
 
-int ip_calc_checksum(char* src, char* dst){
+int calc_ip_checksum(IPPacket packet) {
     return 5;
 }
 
 IPPacket create_ip_packet(char* src, char* dst, char* data){
     if (strlen(src)!=16 || strlen(dst)!=16){ return NULL;}
     IPPacket result = (IPPacket)xxmalloc(sizeof(*result));
-
-    result->header_checksum = ip_calc_checksum(src,dst);
     strcpy1(result->src_ip,src,16);
     strcpy1(result->dst_ip,dst,16);
+    result->header_checksum = calc_ip_checksum(result);
+
     result->data = data;
     result->total_length = 50 + strlen(data);
     return result;

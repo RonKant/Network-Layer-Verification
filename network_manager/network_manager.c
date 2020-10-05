@@ -48,6 +48,61 @@ IPPacket read_ip_packet_from_file(int fd) {
     return result;
 }
 
+/**
+ * Converts tcp packet to ip packet and sends it to it's given destination.
+ * Returns 0 on success, -1 on error.
+ */
+int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
+    if (NULL == packet || NULL == manager || NULL == dst_ip) return -1;
+
+    char* tcp_string = tcp_to_str(packet);
+    if (NULL == tcp_string) return -1;
+
+    IPPacket ip_packet = create_ip_packet(manager->ip, dst_ip, tcp_string);
+    if (NULL == ip_packet) {
+        free(tcp_string);
+        return -1;
+    }
+
+    char* ip_str = ip_to_str(ip_packet);
+    if (NULL == ip_str) {
+        destroy_ip_packet(ip_packet);
+        free(tcp_string);
+        return -1;
+    }
+
+    char* dst_fifo_name = get_in_packet_fifo_name(dst_ip);
+    if (NULL == dst_fifo_name) {
+        destroy_ip_packet(ip_packet);
+        free(tcp_string); free(ip_str);
+        return -1;
+    }
+
+    int dst_fifo_fd = open(dst_fifo_name, O_RDWR);
+    if (-1 == dst_fifo_fd) {
+        printf("Error: destination ip: %s does not exist.\n", dst_ip);
+        free(dst_fifo_name);
+        destroy_ip_packet(ip_packet);
+        free(tcp_string); free(ip_str);
+        return -1;
+    }
+
+    if (write(dst_fifo_fd, ip_str, strlen(ip_str)) == -1) {
+        close(dst_fifo_fd);
+        free(dst_fifo_name);
+        destroy_ip_packet(ip_packet);
+        free(tcp_string); free(ip_str);
+        return -1;
+    }
+
+    close(dst_fifo_fd);
+    free(dst_fifo_name);
+    destroy_ip_packet(ip_packet);
+    free(tcp_string); 
+    free(ip_str);
+    return 0;
+}
+
 /******************************************
  * Utility Functions For fifo creation
  * ****************************************/
@@ -101,15 +156,61 @@ int initialize_network_manager_fifos(NetworkManager manager) {
  * Utility Functions For manager loop
  * ****************************************/
 
-int handle_incoming_ip_packet(IPPacket packet) {
-    // if not meant for self - decrease TTL, maybe discard, maybe send onward.
-
-    // otherwise, check other IP fields, then strip IP header, check tcp header.
-
+int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {   
     // if socket destination exists - pass the message to socket anc handle with already existing functions.
         // here, should also push received data into user socket fifo and send acks.
     // otherwise - ? (discard? send something back?)
+    if (NULL == packet) return -1;
 
+    if (calc_ip_checksum(packet) != packet->header_checksum) {
+        printf("Received a packet with bad checksum. Real value: %d. Should be: %d.\n", packet->header_checksum, calc_ip_checksum(packet));
+        return 0;
+    }
+
+    if (strcmp(packet->dst_ip, manager->ip) != 0) {
+        printf("Received a packet meant for %s, not self (%s)", packet->dst_ip, manager->ip);   
+        return 0;
+    }
+
+    TCPPacket tcp_packet = str_to_tcp(packet->data);
+    if (NULL == tcp_packet) return -1;
+
+    if (calc_checksum(tcp_packet) != tcp_packet->checksum) {
+        printf("Received a TCP packet with bad checksum. Real value: %d. Should be: %d.\n", tcp_packet->checksum, calc_checksum(tcp_packet));
+        return 0;
+    }
+
+
+
+    SocketID id = (SocketID)malloc(sizeof(*id));
+    init_empty_socket_id(id);
+    id->src_ip = packet->src_ip;
+    id->dst_ip = packet->dst_ip;
+    id->src_port = tcp_packet->src_port;
+    id->dst_port = tcp_packet->dst_port;
+
+    Socket sock = getSocket(manager->sockets, id);
+    TCPPacket reply = NULL;
+
+    if (NULL != sock) {
+        reply = handle_packet(sock, tcp_packet, id->src_ip, manager);
+    } else {
+        id->dst_ip = EMPTY_IP;
+        id->dst_port = EMPTY_PORT;
+        sock = getSocket(manager->sockets, id);
+        if (NULL != sock) {
+            reply = handle_packet(sock, tcp_packet, id->src_ip, manager);
+        } else {
+            printf("TCP recepient not found.\n");
+        }
+    }
+
+    if (NULL != reply) {
+        send_TCP_packet(reply, manager, id->dst_ip);
+    }
+
+    free(id);
+    destroy_tcp_packet(tcp_packet);
 
     return 0; // mock
 }
@@ -217,60 +318,6 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
     //destroy_socket(to_remove); //this is done in hashmap remove (shouldn't TODO)
 }
 
-/**
- * Converts tcp packet to ip packet and sends it to it's given destination.
- * Returns 0 on success, -1 on error.
- */
-int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
-    if (NULL == packet || NULL == manager || NULL == dst_ip) return -1;
-
-    char* tcp_string = tcp_to_str(packet);
-    if (NULL == tcp_string) return -1;
-
-    IPPacket ip_packet = create_ip_packet(manager->ip, dst_ip, tcp_string);
-    if (NULL == ip_packet) {
-        free(tcp_string);
-        return -1;
-    }
-
-    char* ip_str = ip_to_str(ip_packet);
-    if (NULL == ip_str) {
-        destroy_ip_packet(ip_packet);
-        free(tcp_string);
-        return -1;
-    }
-
-    char* dst_fifo_name = get_in_packet_fifo_name(dst_ip);
-    if (NULL == dst_fifo_name) {
-        destroy_ip_packet(ip_packet);
-        free(tcp_string); free(ip_str);
-        return -1;
-    }
-
-    int dst_fifo_fd = open(dst_fifo_name, O_RDWR);
-    if (-1 == dst_fifo_fd) {
-        printf("Error: destination ip: %s does not exist.\n", dst_ip);
-        free(dst_fifo_name);
-        destroy_ip_packet(ip_packet);
-        free(tcp_string); free(ip_str);
-        return -1;
-    }
-
-    if (write(dst_fifo_fd, ip_str, strlen(ip_str)) == -1) {
-        close(dst_fifo_fd);
-        free(dst_fifo_name);
-        destroy_ip_packet(ip_packet);
-        free(tcp_string); free(ip_str);
-        return -1;
-    }
-
-    close(dst_fifo_fd);
-    free(dst_fifo_name);
-    destroy_ip_packet(ip_packet);
-    free(tcp_string); 
-    free(ip_str);
-    return 0;
-}
 
 /******************************************
  * Stages of manager loop
@@ -289,10 +336,10 @@ int handle_in_packets_fifo(NetworkManager manager) {
 
         if (NULL == packet) break; // no packets
 
-        if (handle_incoming_ip_packet(packet) != 0) {
+        if (handle_incoming_ip_packet(packet, manager) != 0) {
             printf("Error Receiving packet.\n");
             free(packet);
-            return -1;
+            return 0;
         }
         
         free(packet);
