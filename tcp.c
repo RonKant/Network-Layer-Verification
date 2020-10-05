@@ -16,24 +16,40 @@
 // } * TCPPacket;
 
 const char* tcp_str_repr = "%05d%05d%010d%010d%c%10d%s";
+const char* tcp_str_repr_no_data = "%05d%05d%010d%010d%c%10d";
 
 TCPPacket str_to_tcp(char* s) {
 	TCPPacket result = (TCPPacket)malloc(sizeof(*result));
 	if (NULL == result) return NULL;
 
-	int scanned = sscanf(s, tcp_str_repr,
-		&(result->src_port),
-		&(result->dst_port),
-		&(result->seq_num),
-		&(result->ack_num),
-		&(result->flags),
-		&(result->checksum),
-		result->data
-	);
+	int scanned;
+	if (strlen(s) > 41) {
+		scanned = sscanf(s, tcp_str_repr,
+			&(result->src_port),
+			&(result->dst_port),
+			&(result->seq_num),
+			&(result->ack_num),
+			&(result->flags),
+			&(result->checksum),
+			result->data
+		);
+	} else {
+		scanned = sscanf(s, tcp_str_repr_no_data,
+			&(result->src_port),
+			&(result->dst_port),
+			&(result->seq_num),
+			&(result->ack_num),
+			&(result->flags),
+			&(result->checksum)
+		);
+		result->data = NULL;
+	}
 
     if (scanned != 7) { // if scan failed -- error
-        free(result);
-        return NULL;
+		if (scanned != 6 || strlen(s) != 41) { // could also be with no data.
+			free(result);
+        	return NULL;
+		}
     }
 
 	return result;

@@ -17,8 +17,8 @@ typedef struct {
 
 
     long long total_length;
-    char src_ip[16];
-    char dst_ip[16];
+    char src_ip[17];
+    char dst_ip[17];
     int header_checksum;
     char* data; // the message itself, after the header
 } * IPPacket;

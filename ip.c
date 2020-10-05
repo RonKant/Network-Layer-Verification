@@ -17,17 +17,9 @@ void *xxmalloc(size_t sz){
 
 void strcpy1(char dest[], const char source[],int size)
 {
-    int i = 0;
-    while (1)
-    {
+    for (int i = 0; i < size; ++i) {
         dest[i] = source[i];
-
-        if (dest[i] == '\0' || i==size-1)
-        {
-            break;
-        }
-
-        i++;
+        if (dest[i] == '\0') break;
     }
 }
 
@@ -72,19 +64,25 @@ IPPacket str_to_ip(char* s) {
     result->total_length = str_to_int(s,10);
     strcpy1(result->src_ip,s+10*sizeof(char),16);
     strcpy1(result->dst_ip,s+26*sizeof(char),16);
+    (result->src_ip)[16] = '\0';
+    (result->dst_ip)[16] = '\0';
     result->header_checksum = str_to_int(s+42* sizeof(char),8);
     int data_size = result->total_length-50;
-    result->data= xxmalloc(data_size* sizeof(char));
-    if(strlen(s)>50) {
-        strcpy1(result->data, s + 50 * sizeof(char), 0);
-     }
+
+    if(data_size > 0) {
+        result->data= xxmalloc(data_size* sizeof(char) + 1);
+        strcpy1(result->data, s + 50 * sizeof(char), data_size);
+        (result->data)[data_size * sizeof(char)] = '\0';
+    } else {
+        result->data = NULL;
+    }
     return result;
 }
 
 char* ip_to_str(IPPacket packet) {
 
-    int length_of_msg = packet->total_length*4;
-    char* result = (char*) xxmalloc(length_of_msg*sizeof(char));
+    int length_of_msg = packet->total_length;
+    char* result = (char*) xxmalloc(length_of_msg*sizeof(char) + 1);
 
     if (result == NULL) {
         return NULL;
@@ -93,7 +91,9 @@ char* ip_to_str(IPPacket packet) {
     strcpy1(result+10*sizeof(char),packet->src_ip,16);
     strcpy1(result+26*sizeof(char),packet->dst_ip,16);
     int_to_str(result+42* sizeof(char), 8, packet->header_checksum);
-    strcpy1(result+ 50*sizeof(char), packet->data,0);
+    strcpy1(result+ 50*sizeof(char), packet->data, length_of_msg - 50);
+
+    result[length_of_msg * sizeof(char)] = '\0';
 
     return result;
 }
@@ -107,6 +107,7 @@ IPPacket create_ip_packet(char* src, char* dst, char* data){
     IPPacket result = (IPPacket)xxmalloc(sizeof(*result));
     strcpy1(result->src_ip,src,16);
     strcpy1(result->dst_ip,dst,16);
+
     result->header_checksum = calc_ip_checksum(result);
 
     result->data = data;

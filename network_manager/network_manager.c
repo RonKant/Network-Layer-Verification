@@ -20,6 +20,8 @@
 IPPacket read_ip_packet_from_file(int fd) {
     char total_length_str[11];
 
+    for (int i = 0; i < 11; ++i) total_length_str[i] = '\0';
+
     int read_length = read_entire_message(fd, total_length_str, 10);
     if (10 != read_length) return NULL;
 
@@ -65,6 +67,7 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
     }
 
     char* ip_str = ip_to_str(ip_packet);
+
     if (NULL == ip_str) {
         destroy_ip_packet(ip_packet);
         free(tcp_string);
@@ -168,7 +171,10 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
     }
 
     if (strcmp(packet->dst_ip, manager->ip) != 0) {
-        printf("Received a packet meant for %s, not self (%s)", packet->dst_ip, manager->ip);   
+        // for (int i = 0; i < strlen(packet->dst_ip); ++i) {
+        //     printf("%d, %d, %d\n", (packet->dst_ip)[i], (manager->ip)[i], (packet->dst_ip)[i] == (manager->ip)[i]);
+        // }
+        printf("Received a packet meant for %s, not self (%s)\n", packet->dst_ip, manager->ip);   
         return 0;
     }
 
@@ -343,8 +349,8 @@ int handle_in_packets_fifo(NetworkManager manager) {
             free(packet);
             return 0;
         }
-        
-        free(packet);
+
+        destroy_ip_packet(packet);
     }
 
     return 0;
@@ -608,7 +614,6 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
             printf("Error: hash map insertion error in socket connect");
             return -1;
         }
-        printf("\tConnect successful.\n");
     }
 
     return BREAK_ITERATION;

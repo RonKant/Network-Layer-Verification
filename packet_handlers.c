@@ -122,6 +122,7 @@ TCPPacket handle_packet_syn_sent(Socket socket, TCPPacket packet, char* src_ip, 
     int result= notify_connect_client(manager, socket);
 
     if (result == 0) {
+        printf("\tConnect successful.\n");
         socket->seq_of_first_recv_window = packet->seq_num + 1;
         socket->state = ESTABLISED;
     }
