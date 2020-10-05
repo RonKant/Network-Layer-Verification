@@ -124,17 +124,18 @@ Socket getSocket(HashMap hashMap,SocketID key){
         return NULL;
     int pos = hashCode(hashMap, key);
     Queue posQueue = hashMap->table[pos];
-    for(int i=0; i<QueueSize(posQueue); i=i+1){
-        if(QueueGetElement(posQueue,i) != NULL){
-            if (compareKeys(key, ((Socket)(QueueGetElement(posQueue, i)))->id))
-                return QueueGetElement(posQueue, i);
-        }
-    }
-    /*QUEUE_FOR_EACH(item, posQueue) {
+    // for(int i=0; i<QueueSize(posQueue); i=i+1){
+    //     if(QueueGetElement(posQueue,i) != NULL){
+    //         if (compareKeys(key, ((Socket)(QueueGetElement(posQueue, i)))->id))
+    //             return QueueGetElement(posQueue, i);
+    //     }
+    // }
+    QUEUE_FOR_EACH(item, posQueue) {
         if (compareKeys(key, ((Socket)(item))->id)) {
             return item;
         }
-    }*/
+    }
+    
     return NULL;
 }
 

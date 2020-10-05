@@ -157,6 +157,8 @@ Socket create_new_socket(){
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
+    s->last_send_clock = clock();
+
 	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
 
 	if (NULL == s->send_window

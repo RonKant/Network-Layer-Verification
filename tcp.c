@@ -40,7 +40,6 @@ TCPPacket str_to_tcp(char* s) {
 }
 
 char* tcp_to_str(TCPPacket packet) {
-
 	char* result = (char*)malloc(41 + strlen(packet->data) + 1);
 	if (NULL == result) return NULL;
 
@@ -86,15 +85,21 @@ int calc_checksum(TCPPacket packet) {
 }
 
 
-void destroyPacket(TCPPacket packet) {
+void destroy_tcp_packet(TCPPacket packet) {
 	if (packet == NULL) return;
 	free(packet->data);
 	free(packet);
 }
 
-TCPPacket construct_packet(Socket socket, char* data, char flags, char dst_port) {
+TCPPacket construct_packet(Socket socket, const char* data, char flags, char dst_port) {
 	TCPPacket result = (TCPPacket)malloc(sizeof(*result));
 	if (NULL == result) return NULL;
+
+	result->data = (char*)malloc(strlen(data) + 1);
+	if (NULL == result->data) {
+		free(result);
+		return NULL;
+	}
 
 	result->src_port = (socket->id)->src_port;
 	result->dst_port = dst_port;
@@ -105,7 +110,7 @@ TCPPacket construct_packet(Socket socket, char* data, char flags, char dst_port)
 	result->flags = flags;
 	result->checksum = calc_checksum(result);
 
-	result->data = data;
+	strcpy(result->data, data);
 
     return result;
 }

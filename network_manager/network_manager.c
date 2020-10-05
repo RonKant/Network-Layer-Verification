@@ -101,67 +101,6 @@ int initialize_network_manager_fifos(NetworkManager manager) {
  * Utility Functions For manager loop
  * ****************************************/
 
-
-/**
- * With having already read version and header size, completes the reading of a given ip packet.
- * Returns NULL on error.
- */
-IPPacket read_ip_packet_from_stream(int out_packet_fd, char version, char header_size) {
-    int header_size_bytes = 4 * ((int)header_size);
-    char* header = (char*)malloc(header_size_bytes);
-    if (header == NULL) {
-        printf("Failed allocating ip header of size %d.\n", header_size_bytes);
-        return NULL;
-    }
-
-    // try to read header
-    header[0] = (version << 4) | header_size;
-    int read_result = read_nonzero_entire_message(out_packet_fd, header + 1, header_size - 1);
-    if (read_result == -1) {
-        printf("Failed reading header from fifo.\n");
-        free(header);
-        return NULL;
-    }
-
-    int total_packet_length = (((int)header[2]) << 8) + ((int)header[3]);
-
-    char* ip_packet_raw = (char*)malloc(total_packet_length);
-    if (ip_packet_raw == NULL) {
-        printf("Failed allocating ip packet of size %d.\n", total_packet_length);
-        free(header);
-        return NULL;
-    }
-
-    if (memcpy(ip_packet_raw, header, header_size_bytes) == NULL) {
-        printf("Failed copying memory header into ip packet raw.\n");
-        free(header);
-        free(ip_packet_raw);
-        return NULL;
-    }
-
-    // try to read entire packet
-    read_result = read_nonzero_entire_message(
-        out_packet_fd, ip_packet_raw + header_size_bytes,
-        total_packet_length - header_size_bytes);
-
-    if (read_result == -1) {
-        printf("Failed reading ip packet of size %d.\n", total_packet_length);
-        free(header);
-        free(ip_packet_raw);
-        return NULL;
-    }
-
-    IPPacket packet = str_to_ip(ip_packet_raw);
-    free(header);
-    free(ip_packet_raw);
-    if (packet == NULL) {
-        printf("Failed to convert raw pakcet.\n");
-        return NULL;
-    }
-
-    return packet;
-}
-
 int handle_incoming_ip_packet(IPPacket packet) {
     // if not meant for self - decrease TTL, maybe discard, maybe send onward.
 
@@ -170,6 +109,8 @@ int handle_incoming_ip_packet(IPPacket packet) {
     // if socket destination exists - pass the message to socket anc handle with already existing functions.
         // here, should also push received data into user socket fifo and send acks.
     // otherwise - ? (discard? send something back?)
+
+
     return 0; // mock
 }
 
@@ -282,7 +223,7 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
  */
 int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
     if (NULL == packet || NULL == manager || NULL == dst_ip) return -1;
-    
+
     char* tcp_string = tcp_to_str(packet);
     if (NULL == tcp_string) return -1;
 
@@ -326,7 +267,8 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
     close(dst_fifo_fd);
     free(dst_fifo_name);
     destroy_ip_packet(ip_packet);
-    free(tcp_string); free(ip_str);
+    free(tcp_string); 
+    free(ip_str);
     return 0;
 }
 
@@ -342,27 +284,13 @@ int handle_in_packets_fifo(NetworkManager manager) {
     int in_packet_fd = manager->in_packet_fifo_fd;
 
     for (int i = 0; i < MAX_HANDLES_PER_EPOCH; ++i) {
-        char version_and_header_size[1];
-        int read_result = read_entire_message(in_packet_fd, version_and_header_size, 1);
 
-        if (read_result == -1) {
-            printf("Error while trying to read packet from outgoing fifo.\n");
-            return -1;
-        }
-        if (read_result == 0) {
-            break; // no more messages to read in this epoch.
-        }
+        IPPacket packet = read_ip_packet_from_file(in_packet_fd);
 
-        char version = (version_and_header_size[1] >> 4);
-        char header_size = (version_and_header_size[1] << 4) >> 4;
-
-        IPPacket packet = read_ip_packet_from_stream(in_packet_fd, version, header_size);
-        if (packet == NULL) {
-            return -1;
-        }
+        if (NULL == packet) break; // no packets
 
         if (handle_incoming_ip_packet(packet) != 0) {
-            printf("Error sending packet.\n");
+            printf("Error Receiving packet.\n");
             free(packet);
             return -1;
         }
@@ -616,8 +544,9 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     }
     close(connect_fifo_write_fd);
     free(connect_fifo_write_end_name);
-    printf("Received connect(%c) request from port: %d to (%s, %d).\n", *request, sock_id->src_port, dst_ip, dst_port);
-
+    printf("Connect Request:\n\tDestination: (%s, %d)\n\tSource: (%s, %d)\n",
+        sock_id->src_ip, sock_id->src_port,
+        dst_ip, dst_port);
 
     Socket sock = getSocket(manager->sockets, sock_id);
     if (sock == NULL || sock->state == LISTEN) {
@@ -626,6 +555,9 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     } else {
         hashmapRemove(manager->sockets, sock_id, NULL);
         sock->state = SYN_SENT;
+        srand(time(NULL));
+        sock->seq_of_first_send_window = rand() % 2000 + 1;
+        sock->seq_of_first_recv_window = 0;
         (sock->id)->dst_ip = dst_ip;
         (sock->id)->dst_port = dst_port;
         sock_id->dst_ip = dst_ip;
@@ -635,6 +567,7 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
             free(dst_ip);
             return -1;
         }
+        printf("\tConnect successful.\n");
     }
 
     return BREAK_ITERATION;
@@ -661,6 +594,23 @@ int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
 
 int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager manager) {
     // Handles sending status messages, such as SYN, SYN+ACK, FIN, FIN+ACK, ACK (?)
+
+    Socket sock = getSocket(manager->sockets, sock_id);
+    if (NULL == sock) return 0;
+
+    if (sock->state == SYN_SENT) {
+        if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
+
+            TCPPacket syn_packet = construct_packet(sock, "", SYN, sock_id->dst_port);
+            if (NULL == syn_packet) return 0;
+
+            if (0 == send_TCP_packet(syn_packet, manager, sock_id->dst_ip)) {
+                sock->last_send_clock = clock();
+            }
+            destroy_tcp_packet(syn_packet);
+        }
+    }
+
     return 0;
 }
 
@@ -699,6 +649,10 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
  * ****************************************/
 
 NetworkManager createNetworkManager(char* ip) {
+    if (strlen(ip) != MAX_IP_LENGTH) {
+        printf("Manager ip has to be 16 digits.\n");
+        return NULL;
+    }
     if (init_fifo_directory() != 0) return NULL;
 
     NetworkManager manager = (NetworkManager)malloc(sizeof(*manager));

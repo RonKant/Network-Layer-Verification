@@ -105,9 +105,10 @@ int ip_calc_checksum(char* src, char* dst){
 IPPacket create_ip_packet(char* src, char* dst, char* data){
     if (strlen(src)!=16 || strlen(dst)!=16){ return NULL;}
     IPPacket result = (IPPacket)xxmalloc(sizeof(*result));
+
     result->header_checksum = ip_calc_checksum(src,dst);
-    strcpy1(result->src_ip,src,0);
-    strcpy1(result->dst_ip,dst,0);
+    strcpy1(result->src_ip,src,16);
+    strcpy1(result->dst_ip,dst,16);
     result->data = data;
     result->total_length = 50 + strlen(data);
     return result;
@@ -115,10 +116,5 @@ IPPacket create_ip_packet(char* src, char* dst, char* data){
 
 void destroy_ip_packet(IPPacket ipPacket){
     if (ipPacket == NULL){ return;}
-    free(ipPacket->src_ip);
-    free(ipPacket->dst_ip);
-    if (ipPacket->data!=NULL){
-        free(ipPacket->data);
-    }
     free(ipPacket);
 }

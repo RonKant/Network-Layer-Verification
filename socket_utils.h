@@ -11,6 +11,10 @@
 #define EMPTY_PORT -1
 #define MAX_IP_LENGTH 16
 #define MAX_PORT_STRING_LENGTH
+#define SOCKET_TIMEOUT 10
+#define SOCKET_SEND_AGAIN_TIME 1
+
+#define DIFF2SEC(DIFF) ((double)(DIFF)) / CLOCKS_PER_SEC
 
 void init_empty_socket_id(SocketID sock_id);
 

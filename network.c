@@ -11,8 +11,6 @@
 #include "socket_utils.h"
 #include "fifo_utils.h"
 
-#define SOCKET_TIMEOUT 10
-
 /******************************
  * Utility functions
  ******************************/
@@ -22,6 +20,10 @@
  * Interface implementation
  ******************************/
 Address AddressCreate(const char* ip, int port) {
+    if (strlen(ip) != MAX_IP_LENGTH) {
+        printf("IP length has to be exactly 16 digits.\n");
+        return NULL;
+    }
 	Address result = (Address)malloc(sizeof(*result));
 	if (NULL == result) return NULL;
 
@@ -332,7 +334,7 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
             }
 
             clock_t current = clock();
-            double time_passed = ((double)(current - start)) / CLOCKS_PER_SEC ;
+            double time_passed = DIFF2SEC(current - start);
             // printf("clock: %f.\n", time_passed);
             if (time_passed > SOCKET_TIMEOUT) {
                 close(connect_fifo_read_fd);

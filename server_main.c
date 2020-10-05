@@ -11,7 +11,7 @@ int main() {
         return -1;
     }
 
-    Address addr = AddressCreate("123", 8080);
+    Address addr = AddressCreate("1234123412341234", 8080);
     if (NULL == addr) {
         printf("Failed allocating address object.\n");
         free(sock);

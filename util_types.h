@@ -81,39 +81,6 @@ typedef enum {
 					// after some defined time -> CLOSED (and delete from hashmap).
 } TCPState;
 
-// typedef struct {
-// 	SocketID id;
-// 	TCPState state;
-// 	time_t creation_time;
-
-
-// 	/**
-// 	 * The send window stores bytes that have been sent but not yet acknowledged.
-// 	 * bytes leave it's "left" end when acknowledged.
-// 	 */
-// 	char* send_window; // contains bytes sent but now acknowledged.
-// 	int send_window_size;
-// 	int max_send_window_size;
-// 	int seq_of_first_send_window; // seq number of first byte in send_window;
-// 	bool* send_window_acks;
-
-// 	/**
-// 	 * The recv window stores bytes that have been received but not yet acknowledged.
-// 	 * It may contain "holes" indicated by recv_window_isvalid.
-// 	 * a continuous sequence of bytes may leave this array from it's "left end" after acknowledge was sent for them.
-// 	 */
-// 	char* recv_window; // contains non-continuous byte sequence received.
-// 	int recv_window_size;
-// 	int max_recv_window_size;
-// 	int seq_of_first_recv_window; // seq number of first byte in recv_window - seq number of next byte to receive;
-// 	bool* recv_window_isvalid; // each index indicates whether the corresponding byte has been received;
-
-// 	ByteQueue future_send_bytes; // contains bytes that will be sent in the future.
-// 	ByteQueue received_bytes_queue; // the user can get their data from here - bytes already acknowledged.
-
-// 	int max_connections;
-// 	ConnQueue connections; // contains pending connections for listening sockets.
-// } * Socket;
 
 typedef struct {
     SocketID id;
@@ -148,6 +115,8 @@ typedef struct {
 
     int max_connections;
     Queue connections; // contains pending connections for listening sockets.
+
+	clock_t last_send_clock;
     // TODO Change to Tomer's Queue.
 } * Socket; // change to Socket after integration TODO
 

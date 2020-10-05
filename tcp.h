@@ -46,11 +46,11 @@ int calc_checksum(TCPPacket packet);
 /**
  * Constructs a packet from given fields. ack num and seq num are updated according to data in socket.
  */
-TCPPacket construct_packet(Socket socket, char* data, char flags, char dst_port);
+TCPPacket construct_packet(Socket socket, const char* data, char flags, char dst_port);
 
 /**
  * frees all memory associated with packet
  */
-void destroyPacket(TCPPacket packet);
+void destroy_tcp_packet(TCPPacket packet);
 
 #endif // TCP_H__
