@@ -10,8 +10,6 @@
 #include "array_queue.h"
 //#include<seahorn/seahorn.h>
 
-#define QUEUE_SIZE_IN_HASH 200
-
 void init_empty_socket_id(SocketID sock_id) {
     sock_id->dst_ip = EMPTY_IP;
     sock_id->src_ip = EMPTY_IP;
@@ -154,7 +152,7 @@ Socket create_new_socket(){
 
 	s->connections = NULL;
 
-	s->send_window = QueueCreate(QUEUE_SIZE_IN_HASH);
+	s->send_window = QueueCreate(MAX_WINDOW_SIZE);
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
