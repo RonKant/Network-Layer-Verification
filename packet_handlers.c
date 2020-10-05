@@ -3,12 +3,12 @@
 
 #include "packet_handlers.h"
 #include "network.h"
-#include "connection_queue.h"
+#include "network_manager/network_manager.h"
 
 TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
 
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {
-        close_socket(socket);
+        close_socket(manager, socket);
         return NULL;
     }
 
@@ -48,7 +48,7 @@ TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkMa
             response_packet = handle_packet_time_wait(socket, packet, src_ip);
         break;
     }
-    free(packet);
+
     return response_packet;
 }
 
@@ -83,22 +83,30 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip) {
     if (!(packet->flags & SYN)) {return generate_rst_packet(socket, packet->src_port);}
     // trying to create a new connection
 
-    if (connQueueSize(socket->connections) == socket->max_connections) {return generate_rst_packet(socket, packet->src_port);} // full
+    if (socket->max_connections == 0) {return generate_rst_packet(socket, packet->src_port);} // full
+
+    SocketID new_conn_id = copy_socket_id(socket);
+    if (NULL == new_conn_id) return NULL;
+
+    strcpy(new_conn_id->dst_ip, src_ip);
+    new_conn_id->dst_port = packet->src_port;
+
+    Socket new_conn = create_new_socket();
+    if (NULL == new_conn) {
+        destroy_socket_id(new_conn_id);
+        return NULL;
+    }
 
     srand(time(NULL));
     int my_seq = rand();
-    socket->seq_of_first_send_window = my_seq;
 
-    Socket new_conn = create_new_socket();
+    new_conn->seq_of_first_send_window = my_seq;
 
-    if (new_conn == NULL) {
-        return generate_rst_packet(socket);
-    }
-
-    update_socket_id(new_conn->id, socket->id->src_ip, socket->id->src_port, src_ip, packet->src_port); // TODO: this should update Tomer's dictionary key
-                                                                                                        // TODO: also check return value (this pair might already exist)
     new_conn->state = SYN_RECEIVED;
     new_conn->seq_of_first_recv_window = packet->seq_num+1;
+
+    insertSocket(manager->sockets, 
+    insert new conn to connection dict
 
     TCPPacket result = pack_data(socket, "", calc_next_send_seq(socket)); // take an empty data packet and change it's fields.
                                                                             // will be a SYN+ACK packet

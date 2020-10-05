@@ -157,6 +157,9 @@ Socket create_new_socket(){
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
+    s->seq_of_first_recv_window = 0;
+    s->seq_of_first_send_window = 0;
+
     s->last_send_clock = clock();
 
 	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
@@ -167,6 +170,10 @@ Socket create_new_socket(){
 			destroy_socket(s);
 			return NULL;
 		}
+
+    for (int i = 0; i < s->max_recv_window_size; ++i) {
+        (s->recv_window)[i] = false;
+    }
 
 	return s;
 }

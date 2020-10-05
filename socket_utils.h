@@ -5,11 +5,11 @@
  * Utility functions for handling sockets
  */
 
+#include "network.h"
 #include "util_types.h"
 
 #define EMPTY_IP NULL
 #define EMPTY_PORT -1
-#define MAX_IP_LENGTH 16
 #define MAX_PORT_STRING_LENGTH
 #define SOCKET_TIMEOUT 10
 #define SOCKET_SEND_AGAIN_TIME 1

@@ -54,5 +54,10 @@ int managerLoop(NetworkManager manager);
  */
 int stopManager(char* ip);
 
+/**
+ * Closes all socket resources, and notifies client by fifo.
+ */
+void close_socket(NetworkManager manager, SocketID sock_id);
+
 
 #endif // NETWORK_MANAGER_H

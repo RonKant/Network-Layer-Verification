@@ -210,6 +210,7 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
     }
 
     free(id);
+    destroy_tcp_packet(reply);
     destroy_tcp_packet(tcp_packet);
 
     return 0; // mock

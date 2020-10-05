@@ -7,10 +7,13 @@
  */
 
 // Unique identifier of a socket object.
+#define MAX_IP_LENGTH 16
+
 typedef struct {
 	int id; // positive unique, or -1
 	int src_port, dst_port;
-	char* src_ip, *dst_ip;
+	char src_ip[MAX_IP_LENGTH];
+	char dst_ip[MAX_IP_LENGTH];
 } * SocketID;
 
 #define ILLEGAL_SOCKET_ID NULL
