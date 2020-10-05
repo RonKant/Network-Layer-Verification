@@ -578,7 +578,6 @@ int check_and_handle_connection_queue(SocketID sock_id, NetworkManager manager) 
 int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     // Check socket connect fifo. If there is something and socket is bound AND LISTENING, create new connection 
     // in send SYN mode, and insert it to connection queue and hashmap.
-
     char* connect_fifo_write_end_name = get_connect_fifo_write_end_name(sock_id);
     if (NULL == connect_fifo_write_end_name) return 0;
 
@@ -631,21 +630,27 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
 
 
     Socket sock = getSocket(manager->sockets, sock_id, NULL);
+    printf("1.\n");
     if (sock == NULL || sock->state == LISTEN) {
+        printf("2.\n");
         free(dst_ip);
         return 0;
     } else {
+        printf("3.\n");
         hashmapRemove(manager->sockets, sock_id, NULL);
+        printf("4.\n");
         sock->state = SYN_SENT;
         (sock->id)->dst_ip = dst_ip;
         (sock->id)->dst_port = dst_port;
         sock_id->dst_ip = dst_ip;
         sock_id->dst_port = dst_port;
+        printf("5.\n");
         if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock_id, sock)) {
             printf("Error: hash map insertion error in socket connect");
             free(dst_ip);
             return -1;
         }
+        printf("6.\n");
     }
 
     free(dst_ip);
@@ -677,9 +682,8 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
 }
 
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
-    // printf("\t(%p, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
+    printf("\t(%s, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
     int return_value = 0;
-
     if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
         return_value = check_and_handle_listen_request(sock_id, manager);
         if (return_value != 0) return return_value;

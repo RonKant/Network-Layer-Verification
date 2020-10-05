@@ -147,6 +147,7 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
     //int pos = hashCode(hashMap,key);
     int pos = 1;
     //sassert(pos >= 0 && pos < hashMap->size);
+    
     Queue posQueue = hashMap->table[pos];
     DictElement newDictElement = xmalloc(sizeof(*newDictElement));
     Node tmp = posQueue->head;
