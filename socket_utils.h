@@ -8,6 +8,12 @@
 #include "network.h"
 #include "util_types.h"
 
+#define IS_EMPTY_IP(ip) \
+    ((ip)[0] == "e")
+
+#define IP_SET_EMPTY(ip) \
+    ((ip)[0] = "e"); ((ip)[MAX_IP_LENGTH] = '\0')
+
 #define EMPTY_IP NULL
 #define EMPTY_PORT -1
 #define MAX_PORT_STRING_LENGTH

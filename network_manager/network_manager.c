@@ -184,8 +184,8 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
 
     SocketID id = (SocketID)malloc(sizeof(*id));
     init_empty_socket_id(id);
-    id->src_ip = packet->src_ip;
-    id->dst_ip = packet->dst_ip;
+    strcpy(id->src_ip, packet->src_ip);
+    strcpy(id->dst_ip, packet->dst_ip);
     id->src_port = tcp_packet->src_port;
     id->dst_port = tcp_packet->dst_port;
 
@@ -195,7 +195,7 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
     if (NULL != sock) {
         reply = handle_packet(sock, tcp_packet, id->src_ip, manager);
     } else {
-        id->dst_ip = EMPTY_IP;
+        IP_SET_EMPTY(id->dst_ip);
         id->dst_port = EMPTY_PORT;
         sock = getSocket(manager->sockets, id);
         if (NULL != sock) {
@@ -400,11 +400,6 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     if (sock_id == NULL) return -1;
 
     init_empty_socket_id(sock_id);
-    sock_id->src_ip = (char*)malloc(sizeof(char) * strlen(manager->ip) + 1); // TODO: change to our strlen.
-    if (sock_id->src_ip == NULL) {
-        free(sock_id);
-        return -1;
-    }
 
     strcpy(sock_id->src_ip, manager->ip); // TODO: change to our strcpy.
     sock_id->src_port = port;
@@ -562,7 +557,7 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         return 0;
     }
 
-    char* dst_ip = (char*)malloc(MAX_SOCKET_STRING_REPR_SIZE * sizeof(char));
+    char dst_ip[MAX_IP_LENGTH + 1];
     int dst_port;
 
     if (NULL == dst_ip) {
@@ -585,7 +580,6 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     }
 
     if (!underscore_found || sscanf_result_1 != 1 || sscanf_result_2 != 1) {
-        free(dst_ip);
         close(connect_fifo_write_fd);
         free(connect_fifo_write_end_name);
         return 0;
@@ -598,7 +592,6 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
 
     Socket sock = getSocket(manager->sockets, sock_id);
     if (sock == NULL || sock->state == LISTEN) {
-        free(dst_ip);
         return 0;
     } else {
         hashmapRemove(manager->sockets, sock_id, NULL);
@@ -606,13 +599,12 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         srand(time(NULL));
         sock->seq_of_first_send_window = rand() % 2000 + 1;
         sock->seq_of_first_recv_window = 0;
-        (sock->id)->dst_ip = dst_ip;
+        strcpy((sock->id)->dst_ip, dst_ip);
         (sock->id)->dst_port = dst_port;
-        sock_id->dst_ip = dst_ip;
+        strcpy(sock_id->dst_ip, dst_ip);
         sock_id->dst_port = dst_port;
         if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock_id, sock)) {
             printf("Error: hash map insertion error in socket connect");
-            free(dst_ip);
             return -1;
         }
         printf("\tConnect successful.\n");

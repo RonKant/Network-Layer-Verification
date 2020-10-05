@@ -58,8 +58,6 @@ SocketID SocketCreate() {
 }
 
 void SocketDestroy(SocketID sockid) {
-	free(sockid->src_ip);
-	free(sockid->dst_ip);
 	free(sockid);
 }
 
@@ -142,8 +140,6 @@ Status SocketBind(SocketID sockid, Address addrport) {
     }
 
     if (answer == REQUEST_GRANTED_FIFO) {
-        sockid->src_ip = (char*)malloc(strlen(addrport->addr) + 1); // TODO: change to our strlen
-        if (NULL == sockid->src_ip) return MEMORY_ERROR;
         strcpy(sockid->src_ip, addrport->addr); // TODO: change to our strcpy
         sockid->src_port = addrport->port;
         return SUCCESS;
@@ -386,8 +382,7 @@ SocketID SocketAccept(SocketID sockid) {
         return ILLEGAL_SOCKET_ID;
     }
 
-    char* ip = (char*)malloc(MAX_SOCKET_STRING_REPR_SIZE);
-    if (NULL == ip) return ILLEGAL_SOCKET_ID;
+    char ip[MAX_IP_LENGTH + 1];
     int port;
 
     int sscanf_result_1, sscanf_result_2;
@@ -404,14 +399,13 @@ SocketID SocketAccept(SocketID sockid) {
     }
 
     if (!underscore_found || sscanf_result_1 != 1 || sscanf_result_2 != 1) {
-        free(ip);
         return ILLEGAL_SOCKET_ID;
     }
 
     SocketID new_connection = copy_socket_id(sockid);
     if (NULL == new_connection) return ILLEGAL_SOCKET_ID;
 
-    new_connection->dst_ip = ip;
+    strcpy(new_connection->dst_ip, ip);
     new_connection->dst_port = port;
 
     return new_connection;

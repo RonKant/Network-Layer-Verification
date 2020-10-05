@@ -55,8 +55,6 @@ SocketID copyKeyFunction(SocketID key,HashMapErrors *error){
 HashMapErrors keyFree(SocketID key){
     if(!key)
         return HASH_MAP_NULL_ARGUMENT;
-    free(key->dst_ip);
-    free(key->src_ip);
     free(key);
     return HASH_MAP_SUCCESS;
 }

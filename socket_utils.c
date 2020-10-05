@@ -12,23 +12,23 @@
 
 
 void init_empty_socket_id(SocketID sock_id) {
-    sock_id->dst_ip = EMPTY_IP;
-    sock_id->src_ip = EMPTY_IP;
+    IP_SET_EMPTY(sock_id->dst_ip);
+    IP_SET_EMPTY(sock_id->src_ip);
     sock_id->dst_port = EMPTY_PORT;
     sock_id->src_port = EMPTY_PORT;
 }
 
 bool is_socket_connected(SocketID sock_id) {
-    return (sock_id->dst_ip != EMPTY_IP
+    return (! IS_EMPTY_IP(sock_id->dst_ip)
             && sock_id->dst_port != EMPTY_PORT
-            && sock_id->src_ip != EMPTY_IP
+            && ! IS_EMPTY_IP(sock_id->src_ip)
             && sock_id->src_port != EMPTY_PORT);
 }
 
 bool is_socket_bound_only(SocketID sock_id) {
-    return (sock_id->dst_ip == EMPTY_IP
+    return (IS_EMPTY_IP(sock_id->dst_ip)
         && sock_id->dst_port == EMPTY_PORT
-        && sock_id->src_ip != EMPTY_IP
+        && ! IS_EMPTY_IP(sock_id->src_ip)
         && sock_id->src_port != EMPTY_PORT);
 }
 
@@ -51,27 +51,12 @@ SocketID copy_socket_id(SocketID sock_id) {
     SocketID result = (SocketID)xmalloc(sizeof(*result));
     if (NULL == result) return NULL;
 
-    result->src_ip = NULL;
-    result->dst_ip = NULL;
+    IP_SET_EMPTY(result->src_ip);
+    IP_SET_EMPTY(result->dst_ip);
 
-    if (sock_id->src_ip != NULL) {
-        result->src_ip = (char*)xmalloc(strlen(sock_id->src_ip) + 1); // TODO: change to our strlen_t
-        if (NULL == result->src_ip) {
-            free(result);
-            return NULL;
-        }
-        strcpy_t(result->src_ip, sock_id->src_ip);
-    }
+    strcpy_t(result->src_ip, sock_id->src_ip);
+    strcpy_t(result->dst_ip, sock_id->dst_ip);
 
-    if (sock_id->dst_ip != NULL) {
-        result->dst_ip = (char*)xmalloc(strlen(sock_id->dst_ip) + 1); // TODO: change to our strlen_t
-        if (NULL == result->dst_ip) {
-            free(result->src_ip);
-            free(result);
-            return NULL;
-        }
-        strcpy_t(result->dst_ip, sock_id->dst_ip);
-    }
 
     result->src_port = sock_id->src_port;
     result->dst_port = sock_id->dst_port;
@@ -264,9 +249,6 @@ void* copy_socket(void* to_copy) {
 
 void destroy_socket_id(SocketID sock_id) {
     if (sock_id == NULL) return;
-
-    free(sock_id->src_ip);
-    free(sock_id->dst_ip);
 
     free(sock_id);
 }

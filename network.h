@@ -12,8 +12,8 @@
 typedef struct {
 	int id; // positive unique, or -1
 	int src_port, dst_port;
-	char src_ip[MAX_IP_LENGTH];
-	char dst_ip[MAX_IP_LENGTH];
+	char src_ip[MAX_IP_LENGTH + 1];
+	char dst_ip[MAX_IP_LENGTH + 1];
 } * SocketID;
 
 #define ILLEGAL_SOCKET_ID NULL

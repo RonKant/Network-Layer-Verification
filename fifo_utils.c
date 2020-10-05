@@ -91,7 +91,7 @@ char* get_connect_requests_fifo_name(const char* ip) {
  * Returns null on failure.
  */
 char* construct_full_socket_fifo_name(char* prefix, SocketID sock_id) {
-    if (sock_id == NULL || sock_id->src_ip == NULL) return NULL;
+    if (sock_id == NULL) return NULL;
     char socket_repr[MAX_SOCKET_STRING_REPR_SIZE];
     char* dst_ip = sock_id->dst_ip;
     if (NULL == dst_ip) dst_ip = "NOIP";
