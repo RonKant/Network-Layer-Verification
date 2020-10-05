@@ -7,7 +7,10 @@
 #include "fifo_utils.h"
 #include "socket_utils.h"
 #include "socket.h"
+#include "array_queue.h"
+//#include<seahorn/seahorn.h>
 
+#define QUEUE_SIZE_IN_HASH 200
 
 void init_empty_socket_id(SocketID sock_id) {
     sock_id->dst_ip = EMPTY_IP;
@@ -46,29 +49,29 @@ SocketState get_socket_state(SocketID sock_id) {
 }
 
 SocketID copy_socket_id(SocketID sock_id) {
-    SocketID result = (SocketID)malloc(sizeof(*result));
+    SocketID result = (SocketID)xmalloc(sizeof(*result));
     if (NULL == result) return NULL;
 
     result->src_ip = NULL;
     result->dst_ip = NULL;
 
     if (sock_id->src_ip != NULL) {
-        result->src_ip = (char*)malloc(strlen(sock_id->src_ip) + 1); // TODO: change to our strlen
+        result->src_ip = (char*)xmalloc(strlen(sock_id->src_ip) + 1); // TODO: change to our strlen_t
         if (NULL == result->src_ip) {
             free(result);
             return NULL;
         }
-        strcpy(result->src_ip, sock_id->src_ip);
+        strcpy_t(result->src_ip, sock_id->src_ip);
     }
 
     if (sock_id->dst_ip != NULL) {
-        result->dst_ip = (char*)malloc(strlen(sock_id->dst_ip) + 1); // TODO: change to our strlen
+        result->dst_ip = (char*)xmalloc(strlen(sock_id->dst_ip) + 1); // TODO: change to our strlen_t
         if (NULL == result->dst_ip) {
             free(result->src_ip);
             free(result);
             return NULL;
         }
-        strcpy(result->dst_ip, sock_id->dst_ip);
+        strcpy_t(result->dst_ip, sock_id->dst_ip);
     }
 
     result->src_port = sock_id->src_port;
@@ -113,10 +116,10 @@ bool compare_socket(void* s1, void* s2) {
  */
 void destroy_socket(void* socket) {
     Socket socket_to_destroy = (Socket) socket;
-    if (socket_to_destroy->send_window != NULL) destroyQueue(socket_to_destroy->send_window, NULL);
+    if (socket_to_destroy->send_window != NULL) QueueDestroy(socket_to_destroy->send_window,NULL);
     if (socket_to_destroy->recv_window != NULL) free(socket_to_destroy->recv_window);
     if (socket_to_destroy->recv_window_isvalid != NULL) free(socket_to_destroy->recv_window_isvalid);
-    if (socket_to_destroy->connections != NULL)  destroyQueue(socket_to_destroy->connections, NULL);
+    if (socket_to_destroy->connections != NULL)  QueueDestroy(socket_to_destroy->connections,NULL);
     if (socket_to_destroy->id != NULL) destroy_socket_id(socket_to_destroy->id);
     free(socket_to_destroy);
 }
@@ -129,7 +132,7 @@ void destroy_socket_fifos(Socket socket) {
 }
 
 Socket create_new_socket(){
-	Socket s = (Socket)malloc(sizeof(*s));
+	Socket s = (Socket)xmalloc(sizeof(*s));
 
 	if (s == NULL) return NULL;
 
@@ -151,11 +154,11 @@ Socket create_new_socket(){
 
 	s->connections = NULL;
 
-	s->send_window = createQueue_g(NULL, NULL, NULL); // TODO: change to actual functions
-	s->recv_window = (char*)malloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
-	s->recv_window_isvalid = (bool*)malloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
+	s->send_window = QueueCreate(QUEUE_SIZE_IN_HASH);
+	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
+	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
-	s->connections = createQueue_g(compare_socket, destroy_socket, copy_socket);
+	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
 
 	if (NULL == s->send_window
 		|| NULL == s->recv_window
@@ -172,7 +175,7 @@ void* copy_socket(void* to_copy) {
 
     Socket to_copy_socket = (Socket)to_copy;
 
-    Socket s = (Socket)malloc(sizeof(*s));
+    Socket s = (Socket)xmalloc(sizeof(*s));
 
 	s->id = NULL;
 	s->listen_fifo_read_end = -1;
@@ -197,13 +200,13 @@ void* copy_socket(void* to_copy) {
         return NULL;
     }
 
-    s->send_window = copyQueue(to_copy_socket->send_window);
+    s->send_window = QueueCopy(to_copy_socket->send_window, (copyElem)strcpy_t);
     if (NULL == s->send_window) {
         destroy_socket(s);
         return NULL;
     }
 
-    s->recv_window = (char*)malloc(sizeof(char) * to_copy_socket->max_recv_window_size);
+    s->recv_window = (char*)xmalloc(sizeof(char) * to_copy_socket->max_recv_window_size);
     if (s->recv_window == NULL) {
         destroy_socket(s);
         return NULL;
@@ -213,7 +216,7 @@ void* copy_socket(void* to_copy) {
         (s->recv_window)[i] = (to_copy_socket->recv_window)[i];
     }
 
-    s->recv_window_isvalid = (bool*)malloc(sizeof(bool) * to_copy_socket->max_recv_window_size);
+    s->recv_window_isvalid = (bool*)xmalloc(sizeof(bool) * to_copy_socket->max_recv_window_size);
     if (NULL == s->recv_window_isvalid) {
         destroy_socket(s);
         return NULL;
@@ -224,7 +227,7 @@ void* copy_socket(void* to_copy) {
     }
 
     if (NULL != to_copy_socket->connections) {
-        s->connections = copyQueue(to_copy_socket->connections);
+        s->connections = QueueCopy(to_copy_socket->connections,NULL); //TO DO: what the hell to put in copy?
         if (NULL == s->connections) {
             destroy_socket(s);
             return NULL;

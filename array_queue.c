@@ -29,7 +29,7 @@ Queue QueueCreate(int capacity) {
 void QueueDestroy(Queue q, freeElem free_func) {
     if (NULL == q) return;
     if (NULL == q->array) return;
-    
+
     if (NULL != free_func) {
         QUEUE_FOR_EACH(item, q) {
             free_func(item);
@@ -50,13 +50,15 @@ Queue QueueCopy(Queue q, copyElem copy) {
 }
 
 bool enqueue(Queue q, QueueElement element) {
+    if(q == NULL || element == NULL)
+        return false;
     if (QueueIsFull(q)) return false;
 
     q->tail = (q->tail + 1);
-    if(q->tail >= q->capacity)
-        q->tail -= q->capacity;
+    if(q->tail >= QueueCapacity(q))
+        q->tail -= QueueCapacity(q);
     (q->array)[q->tail] = element;
-    q->size++;
+    q->size = q->size + 1;
 
     return true;
 }
@@ -74,18 +76,30 @@ QueueElement dequeue(Queue q) {
 }
 
 bool QueueIsFull(Queue q) {
-    return q->size == q->capacity;
+    if(q == NULL)
+        return false;
+    if(QueueSize(q) == QueueCapacity(q))
+        return true;
+    return false;
 }
 
 bool QueueIsEmpty(Queue q) {
-    return 0 == q->size;
+    if(q == NULL)
+        return false;
+    if(QueueSize(q) == 0)
+        return true;
+    return false;
 }
 
 int QueueSize(Queue q) {
+    if(q == NULL)
+        return -1;
     return q->size;
 }
 
 int QueueCapacity(Queue q) {
+    if(q == NULL)
+        return -1;
     return q->capacity;
 }
 
@@ -106,7 +120,6 @@ QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond, Parameter p
             removed = item;
         }
     }
-
     for (; q->size > 0;) dequeue(q);
     QUEUE_FOR_EACH(item, temp_q) enqueue(q, item);
     QueueDestroy(temp_q, NULL);
@@ -131,4 +144,9 @@ QueueElement QueueGetNext(Queue q) {
         index-=q->capacity;
     return (q->array)[index];
 
+}
+QueueElement QueueGetElement(Queue q, int index){
+    if(q == NULL || q->array == NULL)
+        return NULL;
+    return q->array[index];
 }

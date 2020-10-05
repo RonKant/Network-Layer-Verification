@@ -28,6 +28,8 @@ QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond, Parameter p
 QueueElement QueueGetFirst(Queue q);
 QueueElement QueueGetNext(Queue q);
 
+QueueElement QueueGetElement(Queue q, int index);
+
 #define QUEUE_FOR_EACH(item, queue) \
     for (QueueElement item = QueueGetFirst(queue); \
         item != NULL; \
