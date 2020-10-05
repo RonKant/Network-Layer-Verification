@@ -40,9 +40,9 @@ bool is_socket_bound_only(SocketID sock_id) {
 }
 
 bool is_socket_empty(SocketID sock_id) {
-    return (sock_id->dst_ip == EMPTY_IP
+    return (is_empty_ip(sock_id->dst_ip)
         && sock_id->dst_port == EMPTY_PORT
-        && sock_id->src_ip == EMPTY_IP
+        && is_empty_ip(sock_id->src_ip)
         && sock_id->src_port == EMPTY_PORT);
 }
 

@@ -8,7 +8,6 @@
 #include "network.h"
 #include "util_types.h"
 
-#define EMPTY_IP NULL
 #define EMPTY_PORT -1
 #define MAX_PORT_STRING_LENGTH
 #define SOCKET_TIMEOUT 10

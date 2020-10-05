@@ -775,11 +775,10 @@ int managerLoop(NetworkManager manager) {
         }
     
         // go over connect requests fifo, handle them
-        
+
         if (handle_in_packets_fifo(manager) != 0) {
             return -1;
         }
-        // currently broken because hashmap iterator does not work (because of badly initialized table entries)
 
         // printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
