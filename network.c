@@ -163,6 +163,7 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sockid);
 
     if (NULL == listen_fifo_read_end_name || NULL == listen_fifo_write_end_name) {
+        printf("1.\n");
         free(listen_fifo_write_end_name);
         free(listen_fifo_read_end_name);
         return MEMORY_ERROR;
@@ -170,6 +171,7 @@ Status SocketListen(SocketID sockid, int queueLimit) {
 
     if (0 != mkfifo(listen_fifo_write_end_name, DEFAULT_FIFO_MODE)
         || 0 != mkfifo(listen_fifo_read_end_name, DEFAULT_FIFO_MODE)) {
+            printf("2.\n");
             free(listen_fifo_write_end_name);
             free(listen_fifo_read_end_name);
             return MEMORY_ERROR;
@@ -177,6 +179,7 @@ Status SocketListen(SocketID sockid, int queueLimit) {
 
     int listen_fifo_write_fd = open(listen_fifo_write_end_name, O_WRONLY);
     if (-1 == listen_fifo_write_fd) {
+        printf("3.\n");
         unlink(listen_fifo_read_end_name);
         unlink(listen_fifo_write_end_name);
         free(listen_fifo_write_end_name);
@@ -186,6 +189,7 @@ Status SocketListen(SocketID sockid, int queueLimit) {
 
     int listen_fifo_read_fd = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
     if (-1 == listen_fifo_read_fd) {
+        printf("4.\n");
         close(listen_fifo_write_fd);
         unlink(listen_fifo_read_end_name);
         unlink(listen_fifo_write_end_name);
@@ -254,8 +258,13 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
         return MEMORY_ERROR;
     }
 
-    mkfifo(connect_fifo_write_name, DEFAULT_FIFO_MODE);
-    mkfifo(connect_fifo_read_name, DEFAULT_FIFO_MODE);
+    if (0 != mkfifo(connect_fifo_write_name, DEFAULT_FIFO_MODE)
+        || 0 != mkfifo(connect_fifo_read_name, DEFAULT_FIFO_MODE)) {
+            printf("2.\n");
+            free(connect_fifo_write_name);
+            free(connect_fifo_read_name);
+            return MEMORY_ERROR;
+        }
 
     int connect_fifo_write_fd = open(connect_fifo_write_name, O_RDWR);
     if (-1 == connect_fifo_write_fd) {

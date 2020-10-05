@@ -72,7 +72,9 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip, Ne
     if (!(packet->flags & SYN)) {return NULL;}
     // trying to create a new connection
 
-    if (socket->max_connections == 0) {return generate_rst_packet(socket, packet->src_port);} // full
+    if (socket->max_connections == 0) {
+        return generate_rst_packet(socket, packet->src_port);
+    } // full
 
     SocketID new_conn_id = copy_socket_id(socket->id);
     if (NULL == new_conn_id) return NULL;

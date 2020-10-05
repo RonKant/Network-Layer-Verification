@@ -193,8 +193,6 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
     id->src_port = tcp_packet->dst_port;
     id->dst_port = tcp_packet->src_port;
 
-    printf("packet: (%s, %d) -> (%s, %d).\n", packet->src_ip, tcp_packet->src_port, packet->dst_ip, tcp_packet->dst_port);
-
     Socket sock = getSocket(manager->sockets, id);
     TCPPacket reply = NULL;
 
@@ -467,22 +465,22 @@ int handle_bind_fifo(NetworkManager manager) {
 int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     // Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
     // return 0 on non critical errors so the entire system does not crash.
-    // printf("1.\n");
+    printf("a.\n");
     char* listen_fifo_write_name = get_listen_fifo_write_end_name(sock_id);
     if (NULL == listen_fifo_write_name) return 0;
-    // printf("2.\n");
+    printf("b.\n");
     char* accept_fifo_name = get_accept_fifo_write_end_name(sock_id);
     if (NULL == accept_fifo_name) {
         free(listen_fifo_write_name);
         return 0;
     }
-    // printf("3.\n");
+    printf("c.\n");
     int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDWR);
     if (-1 == listen_fifo_write_fd) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
-    // printf("4.\n");
+    printf("d.\n");
     char request[1];
     int read_length = read_entire_message(listen_fifo_write_fd, request, 1);
     if (read_length == -1 || read_length == 0) {
@@ -490,7 +488,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
-    // printf("5.\n");
+    printf("e.\n");
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
@@ -503,6 +501,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
             reply = REQUEST_DENIED_FIFO;
         } else {
             sock->state = LISTEN;
+            sock->max_connections = (int)(*request);
             reply = REQUEST_GRANTED_FIFO;
         }
     }
@@ -769,28 +768,31 @@ int managerLoop(NetworkManager manager) {
     }
 
     while (1) {
+        printf("1.\n");
         if (should_terminate_manager(manager)) {
             printf("Terminating manager\n");
             terminate_manager(manager);
             return 0;
         }
-
+        printf("2.\n");
         if (handle_bind_fifo(manager) != 0) {
             return -1;
         }
-    
+        printf("3.\n");
         // go over connect requests fifo, handle them
 
         if (handle_in_packets_fifo(manager) != 0) {
             return -1;
         }
-
+        printf("4.\n");
         // printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
+            printf(".");
             int result = handle_socket_in_network(sock_id, manager);
             if (result == BREAK_ITERATION) break;
             if (-1 == result) return -1;
         }
+        printf("\n5\n");
 
     }
 }

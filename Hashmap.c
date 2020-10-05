@@ -33,6 +33,17 @@ struct HashMap_t{
 };
 
 bool compareKeys(SocketID key1,SocketID key2){
+   
+    // if (! (key1->dst_port == key2->dst_port && !strcmp_t(key1->src_ip,key2->src_ip) &&
+    //        key1->src_port == key2->src_port && !strcmp_t(key1->dst_ip,key2->dst_ip))) {
+
+    //             printf("key1: (%s, %d), (%s, %d).\n", key1->src_ip, key1->src_port, key1->dst_ip, key1->dst_port);
+    // printf("key2: (%s, %d), (%s, %d).\n", key2->src_ip, key2->src_port, key2->dst_ip, key2->dst_port);
+
+
+    //     printf("%d %d %d %d.\n", key1->dst_port == key2->dst_port, !strcmp_t(key1->src_ip,key2->src_ip),
+    //         key1->src_port == key2->src_port, !strcmp_t(key1->dst_ip,key2->dst_ip));
+    //        }
     if(key1 == key2)
         return true;
     //assume(key1 != NULL && key2 != NULL);
@@ -128,6 +139,7 @@ Socket getSocket(HashMap hashMap,SocketID key){
     //             return QueueGetElement(posQueue, i);
     //     }
     // }
+
     QUEUE_FOR_EACH(item, posQueue) {
         if (compareKeys(key, ((Socket)(item))->id)) {
             return item;
