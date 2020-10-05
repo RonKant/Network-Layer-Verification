@@ -186,14 +186,14 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
         return 0;
     }
 
-
-
     SocketID id = (SocketID)malloc(sizeof(*id));
     init_empty_socket_id(id);
-    strcpy(id->src_ip, packet->src_ip);
-    strcpy(id->dst_ip, packet->dst_ip);
-    id->src_port = tcp_packet->src_port;
-    id->dst_port = tcp_packet->dst_port;
+    strcpy(id->src_ip, packet->dst_ip);
+    strcpy(id->dst_ip, packet->src_ip);
+    id->src_port = tcp_packet->dst_port;
+    id->dst_port = tcp_packet->src_port;
+
+    printf("packet: (%s, %d) -> (%s, %d).\n", packet->src_ip, tcp_packet->src_port, packet->dst_ip, tcp_packet->dst_port);
 
     Socket sock = getSocket(manager->sockets, id);
     TCPPacket reply = NULL;

@@ -107,7 +107,7 @@ void destroy_tcp_packet(TCPPacket packet) {
 	free(packet);
 }
 
-TCPPacket construct_packet(Socket socket, const char* data, char flags, char dst_port) {
+TCPPacket construct_packet(Socket socket, const char* data, char flags, int dst_port) {
 	TCPPacket result = (TCPPacket)malloc(sizeof(*result));
 	if (NULL == result) return NULL;
 
