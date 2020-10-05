@@ -15,6 +15,8 @@
 #define MAX_HANDLES_PER_EPOCH 10
 #define MAX_BIND_REQUEST_SIZE 100
 
+#define BREAK_ITERATION 2
+
 IPPacket read_ip_packet_from_file(int fd) {
     char total_length_str[11];
 
@@ -25,12 +27,12 @@ IPPacket read_ip_packet_from_file(int fd) {
 
     int total_length;
 
-    if (sscanf(total_length, "%d", &total_length) < 1) return NULL;
+    if (sscanf(total_length_str, "%d", &total_length) < 1) return NULL;
 
     char* packet_str = (char*)malloc(total_length + 1);
     if (NULL == packet_str) return NULL;
 
-    for (int i = 0; i < 10; ++i) packet_str[i] = total_length_str;
+    for (int i = 0; i < 10; ++i) packet_str[i] = total_length_str[i];
 
     read_length = read_nonzero_entire_message(fd, packet_str + 10, total_length - 10);
     if (total_length - 10 != read_length) {
@@ -280,7 +282,6 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
  */
 int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
     if (NULL == packet || NULL == manager || NULL == dst_ip) return -1;
-    int dst_port = packet->dst_port;
     
     char* tcp_string = tcp_to_str(packet);
     if (NULL == tcp_string) return -1;
@@ -314,7 +315,7 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
         return -1;
     }
 
-    if (write(dst_fifo_fd, ip_str, strlen_t(ip_str)) == -1) {
+    if (write(dst_fifo_fd, ip_str, strlen(ip_str)) == -1) {
         close(dst_fifo_fd);
         free(dst_fifo_name);
         destroy_ip_packet(ip_packet);
@@ -577,6 +578,78 @@ int check_and_handle_connection_queue(SocketID sock_id, NetworkManager manager) 
 int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     // Check socket connect fifo. If there is something and socket is bound AND LISTENING, create new connection 
     // in send SYN mode, and insert it to connection queue and hashmap.
+
+    char* connect_fifo_write_end_name = get_connect_fifo_write_end_name(sock_id);
+    if (NULL == connect_fifo_write_end_name) return 0;
+
+    int connect_fifo_write_fd = open(connect_fifo_write_end_name, O_RDONLY | O_NONBLOCK);
+    if (-1 == connect_fifo_write_fd) {
+        free(connect_fifo_write_end_name);
+        return 0;
+    }
+
+    char request[MAX_SOCKET_STRING_REPR_SIZE];
+    int read_length = read_message_until_char(connect_fifo_write_fd, request, '\0');
+
+    if (read_length == -1 || read_length == 0) {
+        close(connect_fifo_write_fd);
+        free(connect_fifo_write_end_name);
+        return 0;
+    }
+
+    char* dst_ip = (char*)malloc(MAX_SOCKET_STRING_REPR_SIZE * sizeof(char));
+    int dst_port;
+
+    if (NULL == dst_ip) {
+        close(connect_fifo_write_fd);
+        free(connect_fifo_write_end_name);
+        return 0;
+    }
+
+    int sscanf_result_1, sscanf_result_2;
+    bool underscore_found = false;
+    for (int i = 0; i < strlen(request); ++i) {
+        if (request[i] == '_') {
+            underscore_found = true;
+            request[i] = '\0';
+
+            sscanf_result_1 = sscanf(request + i + 1, "%d", &dst_port);
+            sscanf_result_2 = sscanf(request, "%s", dst_ip);
+            break;
+        }
+    }
+
+    if (!underscore_found || sscanf_result_1 != 1 || sscanf_result_2 != 1) {
+        free(dst_ip);
+        close(connect_fifo_write_fd);
+        free(connect_fifo_write_end_name);
+        return 0;
+    }
+    close(connect_fifo_write_fd);
+    free(connect_fifo_write_end_name);
+    printf("Received connect(%c) request from port: %d to (%s, %d).\n", *request, sock_id->src_port, dst_ip, dst_port);
+
+
+    Socket sock = getSocket(manager->sockets, sock_id, NULL);
+    if (sock == NULL || sock->state == LISTEN) {
+        free(dst_ip);
+        return 0;
+    } else {
+        hashmapRemove(manager->sockets, sock_id, NULL);
+        sock->state = SYN_SENT;
+        (sock->id)->dst_ip = dst_ip;
+        (sock->id)->dst_port = dst_port;
+        sock_id->dst_ip = dst_ip;
+        sock_id->dst_port = dst_port;
+        if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock_id, sock)) {
+            printf("Error: hash map insertion error in socket connect");
+            free(dst_ip);
+            return -1;
+        }
+    }
+
+    free(dst_ip);
+    return BREAK_ITERATION;
 }
 
 int check_and_handle_out_fifo(SocketID sock_id, NetworkManager manager) {
@@ -600,6 +673,7 @@ int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
 
 int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager manager) {
     // Handles sending status messages, such as SYN, SYN+ACK, FIN, FIN+ACK, ACK (?)
+    return 0;
 }
 
 int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
@@ -711,7 +785,9 @@ int managerLoop(NetworkManager manager) {
 
         // printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
-            handle_socket_in_network(sock_id, manager);
+            int result = handle_socket_in_network(sock_id, manager);
+            if (result == BREAK_ITERATION) break;
+            if (-1 == result) return -1;
         }
 
     }

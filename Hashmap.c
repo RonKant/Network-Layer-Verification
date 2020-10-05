@@ -208,7 +208,7 @@ Socket getSocket(HashMap hashMap,SocketID key,HashMapErrors *error){
 
 SocketID hashMapGetFirst(HashMap hashMap) {
     //assert(hashMap != NULL);
-    if (hashMap->size == 0) {
+    if (hashMap == NULL || hashMap->size == 0) {
         return NULL;
     }
     for (int queue_num = 0; queue_num < hashMap->size; ++queue_num) {

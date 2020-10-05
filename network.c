@@ -4,11 +4,14 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "network.h"
 #include "socket_utils.h"
 #include "fifo_utils.h"
+
+#define SOCKET_TIMEOUT 10
 
 /******************************
  * Utility functions
@@ -207,19 +210,34 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     // await answer
 
     char answer;
-    int read_size = read_nonzero_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
 
-    if (-1 == read_size) {
-        close(listen_fifo_read_fd);
-        unlink(listen_fifo_read_end_name);
-        free(listen_fifo_read_end_name);
-        return MEMORY_ERROR;
-    }
+    clock_t start = clock();
 
-    if (1 == read_size) {
-        close(listen_fifo_read_fd);
-        unlink(listen_fifo_read_end_name);
-        free(listen_fifo_read_end_name);
+    while (1) {
+        int read_size = read_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
+
+        if (-1 == read_size) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+            return MEMORY_ERROR;
+        }
+
+        if (1 == read_size) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+            break;
+        }
+
+        clock_t current = clock();
+        if (((double)(current - start)) / CLOCKS_PER_SEC > SOCKET_TIMEOUT) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+            return TIMED_OUT;
+        }
+  
     }
 
     Status return_value;

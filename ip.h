@@ -15,17 +15,12 @@
  * This file is for everything related to parsing IP requests
 */
 typedef struct {
-    int version;
-    int ihl;
-    int dscp_and_ecn;
-    int total_length;
-    int id;
-    int flags_and_offset;
-    int ttl;
-    int protocol;
+
+
+    long long total_length;
+    char src_ip[16];
+    char dst_ip[16];
     int header_checksum;
-    char src_ip[15];
-    char dst_ip[15];
     char* data; // the message itself, after the header
 } * IPPacket;
 
@@ -41,16 +36,14 @@ IPPacket str_to_ip(char* s);
  */
 char* ip_to_str(IPPacket packet);
 
+IPPacket create_ip_packet(char* src, char* dst, char* data);
+
+void destroy_ip_packet(IPPacket ipPacket);
+
 /**
  * Sends a packet immediately (skips/after window mechanism)
  */
 bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst);
-
-IPPacket create_empty_IP_packet() {
-    IPPacket result = (IPPacket)malloc(sizeof(*result));
-
-    
-}
 
 /**
  *
@@ -59,8 +52,6 @@ IPPacket create_empty_IP_packet() {
  * @return true if send the packet, false if fail
  */
 bool handle_ip_message(char* ip_header, HashMap hashMap);
-void* xcalloc(size_t nelem,size_t elem_size);
-char* strcat_t(char* dest, char* source);
-unsigned int strlen_t(char* str);
+void int_to_str(char* str, int size_of_str, long n);
 
 #endif //CODE_IP_H

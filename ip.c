@@ -3,8 +3,6 @@
 #include <stdio.h>
 
 #include "ip.h"
-#include "util_types.h"
-#include "network.h"
 
 
 const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%015s%015s%";
@@ -13,134 +11,114 @@ const char* ip_str_repr = "%01X%01X%02X%04X%04X%04X%02X%02X%04X%015s%015s%";
 void *xxmalloc(size_t sz){
     void *p;
     p=malloc(sz);
-    //   assume(p>0);
+ //   assume(p>0);
     return p;
+}
+
+void strcpy1(char dest[], const char source[],int size)
+{
+    int i = 0;
+    while (1)
+    {
+        dest[i] = source[i];
+
+        if (dest[i] == '\0' || i==size-1)
+        {
+            break;
+        }
+
+        i++;
+    }
+}
+
+int str_to_int(char* str, int size_of_int){
+    // Initialize result
+    int res = 0;
+
+    // Iterate through all characters
+    // of input string and update result
+    for (int i = 0; i<size_of_int; ++i)
+        res = res * 10 + str[i] - '0';
+    // return result.
+    return res;
+}
+
+long long power(int base, int exponent) {
+    long long result=1;
+    for (; exponent>0; exponent--)
+    {
+        result = result * base;
+    }
+    return result;
+}
+
+void int_to_str(char* str, int size_of_str,long n){
+
+
+    long long help = power(10,size_of_str);
+
+    for (int i = 0; i<size_of_str; ++i) {
+        long long tmp = n % help;
+        help=help/10;
+        str[i] = (tmp /help)+'0';
+    }
 }
 
 IPPacket str_to_ip(char* s) {
     IPPacket result = (IPPacket)xxmalloc(sizeof(*result));
-    int scanned = sscanf(s, ip_str_repr,
-                         &(result->version),
-                         &(result->ihl),
-                         &(result->dscp_and_ecn),
-                         &(result->total_length),
-                         &(result->id),
-                         &(result->flags_and_offset),
-                         &(result->ttl),
-                         &(result->protocol),
-                         &(result->header_checksum),
-                         &(result->src_ip),
-                         &(result->dst_ip));
-
-    if (scanned != 11) { // if scan failed -- error
-        free(result);
+    if (strlen(s)<50){
         return NULL;
     }
-    char* s_data = s + (result->ihl * 32);      //s_data is the pointer of the data section in s. ihl is the length of the header
-    result->data = (char*)malloc(strlen(s_data) + 1);
-
-    if (result -> data == NULL) {
-        free(result);
-        return NULL;
-    }
-
-    strcpy(result->data, s_data);
-
+    result->total_length = str_to_int(s,10);
+    strcpy1(result->src_ip,s+10*sizeof(char),16);
+    strcpy1(result->dst_ip,s+26*sizeof(char),16);
+    result->header_checksum = str_to_int(s+42* sizeof(char),8);
+    int data_size = result->total_length-50;
+    result->data= xxmalloc(data_size* sizeof(char));
+    if(strlen(s)>50) {
+        strcpy1(result->data, s + 50 * sizeof(char), 0);
+     }
     return result;
 }
-/*
+
 char* ip_to_str(IPPacket packet) {
 
     int length_of_msg = packet->total_length*4;
-    char* result = (char*) calloc(length_of_msg, sizeof(char));
+    char* result = (char*) xxmalloc(length_of_msg*sizeof(char));
 
     if (result == NULL) {
         return NULL;
     }
-
-    int retval = sprintf(result,ip_str_repr,
-                         (packet->version),
-                         (packet->ihl),
-                         (packet->dscp_and_ecn),
-                         (packet->total_length),
-                         (packet->id),
-                         (packet->flags_and_offset),
-                         (packet->ttl),
-                         (packet->protocol),
-                         (packet->header_checksum),
-                         (packet->src_ip),
-                         (packet->dst_ip)); // we don't use the urgent field
-
-    if (retval < 0) {
-        free(result);
-        return NULL;
-    }
-    int header_size = packet->ihl * 32;
-    strcat(result + header_size, packet->data);//result+header_size = the begining of the data section
+    int_to_str(result,10,packet->total_length);
+    strcpy1(result+10*sizeof(char),packet->src_ip,16);
+    strcpy1(result+26*sizeof(char),packet->dst_ip,16);
+    int_to_str(result+42* sizeof(char), 8, packet->header_checksum);
+    strcpy1(result+ 50*sizeof(char), packet->data,0);
 
     return result;
 }
 
-bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst){
-    IPPacket packet = (IPPacket)malloc(sizeof(*packet));
-    if (packet == NULL)
-        return false;
-    //create the packet
-    packet->data = tcp_as_str;
-    packet->version=0, packet->ihl=0, packet->dscp_and_ecn=0;
-    packet->total_length=0;
-    packet->id=0, packet->flags_and_offset=0,packet->ttl=0,packet->protocol=0,packet->header_checksum=0;
-
-    // packet->src_ip = socket->id->src_ip;
-    //packet->dst_ip = ip_dst;
-    strcpy(packet->src_ip,socket->id->src_ip);
-    strcpy(packet->dst_ip,ip_dst);
-
-    //write to file that supposes to simulate
-    FILE *fp;
-    fp = fopen(ip_dst, "w+"); //"sending" the packet to ip_dst
-    if (fp == NULL){
-        free(packet);
-        return false;
-    }
-    fprintf(fp, ip_to_str(packet));
-    fclose(fp);
-    free(packet);
-    return true;
-
-
+int ip_calc_checksum(char* src, char* dst){
+    return 5;
 }
 
-Key getKeyFromIPpacket(IPPacket packet){
-    TCPPacket tcp_packet = str_to_tcp(packet->data);
-    Key key = (Key)malloc(sizeof(*key));
-    if (key == NULL)
-        return NULL;
-
-    key->localPort = tcp_packet->src_port;
-    key->remotePort = tcp_packet->dst_port;
-    free(tcp_packet);
-
-    key->localIp = packet->src_ip;
-    key->remoteIp = packet->dst_ip;
-
-    return key;
+IPPacket create_ip_packet(char* src, char* dst, char* data){
+    if (strlen(src)!=16 || strlen(dst)!=16){ return NULL;}
+    IPPacket result = (IPPacket)xxmalloc(sizeof(*result));
+    result->header_checksum = ip_calc_checksum(src,dst);
+    strcpy1(result->src_ip,src,0);
+    strcpy1(result->dst_ip,dst,0);
+    result->data = data;
+    result->total_length = 50 + strlen(data);
+    return result;
 }
 
-bool handle_ip_message(char* ip_header, HashMap hashMap){
-    IPPacket ip_packet = str_to_ip(ip_header);  //translate the string to a packet
-    Key key = getKeyFromIPpacket(ip_packet);//finding the right key in the hash map that suit to the packet
-    if (key == NULL)
-        return false;
-    Socket socket = getSocket(hashMap, key);
-    free(key);
-    if (socket==NULL)
-        return false;
-
-    TCPPacket after_handle_packet = handle_packet(socket,str_to_tcp(ip_packet->data),ip_packet->src_ip);
-    if (after_handle_packet!=NULL){
-        return send_packet(socket,ip_packet->data,ip_packet->dst_ip);
+void destroy_ip_packet(IPPacket ipPacket){
+    if (ipPacket == NULL){ return;}
+    free(ipPacket->src_ip);
+    free(ipPacket->dst_ip);
+    if (ipPacket->data!=NULL){
+        free(ipPacket->data);
     }
-
-    return true;
-}*/
+    free(ipPacket);
+}
