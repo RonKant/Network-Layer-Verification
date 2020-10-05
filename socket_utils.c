@@ -6,29 +6,36 @@
 #include "Functions.h"
 #include "fifo_utils.h"
 #include "socket_utils.h"
-#include "socket.h"
 #include "array_queue.h"
 //#include<seahorn/seahorn.h>
 
+bool is_empty_ip(char* ip) {
+    return ip[0] == 'e';
+}
+
+void ip_set_empty(char* ip) {
+    for (int i = 0; i < MAX_IP_LENGTH; ++i) ip[i] = 'e';
+    ip[MAX_IP_LENGTH] = '\0';
+}
 
 void init_empty_socket_id(SocketID sock_id) {
-    IP_SET_EMPTY(sock_id->dst_ip);
-    IP_SET_EMPTY(sock_id->src_ip);
+    ip_set_empty(sock_id->dst_ip);
+    ip_set_empty(sock_id->src_ip);
     sock_id->dst_port = EMPTY_PORT;
     sock_id->src_port = EMPTY_PORT;
 }
 
 bool is_socket_connected(SocketID sock_id) {
-    return (! IS_EMPTY_IP(sock_id->dst_ip)
+    return (! is_empty_ip(sock_id->dst_ip)
             && sock_id->dst_port != EMPTY_PORT
-            && ! IS_EMPTY_IP(sock_id->src_ip)
+            && ! is_empty_ip(sock_id->src_ip)
             && sock_id->src_port != EMPTY_PORT);
 }
 
 bool is_socket_bound_only(SocketID sock_id) {
-    return (IS_EMPTY_IP(sock_id->dst_ip)
+    return (is_empty_ip(sock_id->dst_ip)
         && sock_id->dst_port == EMPTY_PORT
-        && ! IS_EMPTY_IP(sock_id->src_ip)
+        && ! is_empty_ip(sock_id->src_ip)
         && sock_id->src_port != EMPTY_PORT);
 }
 
@@ -51,8 +58,8 @@ SocketID copy_socket_id(SocketID sock_id) {
     SocketID result = (SocketID)xmalloc(sizeof(*result));
     if (NULL == result) return NULL;
 
-    IP_SET_EMPTY(result->src_ip);
-    IP_SET_EMPTY(result->dst_ip);
+    ip_set_empty(result->src_ip);
+    ip_set_empty(result->dst_ip);
 
     strcpy_t(result->src_ip, sock_id->src_ip);
     strcpy_t(result->dst_ip, sock_id->dst_ip);

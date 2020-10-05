@@ -195,7 +195,7 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
     if (NULL != sock) {
         reply = handle_packet(sock, tcp_packet, id->src_ip, manager);
     } else {
-        IP_SET_EMPTY(id->dst_ip);
+        ip_set_empty(id->dst_ip);
         id->dst_port = EMPTY_PORT;
         sock = getSocket(manager->sockets, id);
         if (NULL != sock) {

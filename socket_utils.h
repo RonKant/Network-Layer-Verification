@@ -16,14 +16,9 @@
 
 #define DIFF2SEC(DIFF) ((double)(DIFF)) / CLOCKS_PER_SEC
 
-bool is_empty_ip(char* ip) {
-    return ip[0] == 'e';
-}
+bool is_empty_ip(char* ip);
 
-void ip_set_empty(char* ip) {
-    for (int i = 0; i < MAX_IP_LENGTH; ++i) ip[i] = 'e';
-    ip[MAX_IP_LENGTH] = '\0';
-}
+void ip_set_empty(char* ip);
 
 void init_empty_socket_id(SocketID sock_id);
 

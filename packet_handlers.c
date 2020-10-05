@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "packet_handlers.h"
@@ -8,7 +9,7 @@
 TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
 
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {
-        close_socket(manager, socket);
+        socket->state = CLOSED;
         return NULL;
     }
 
@@ -73,7 +74,7 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip, Ne
 
     if (socket->max_connections == 0) {return generate_rst_packet(socket, packet->src_port);} // full
 
-    SocketID new_conn_id = copy_socket_id(socket);
+    SocketID new_conn_id = copy_socket_id(socket->id);
     if (NULL == new_conn_id) return NULL;
 
     strcpy(new_conn_id->dst_ip, src_ip);
@@ -144,20 +145,20 @@ TCPPacket handle_packet_syn_received(Socket socket, TCPPacket packet, char* src_
 /**
  * inserts data from accepted data packet into an ESTABLISHED socket recv_window
  */
-void receiveNewData(Socket socket, TCPPacket packet) {
-    for (int i = 0; i < strlen(packet->data); ++i) { // take only missing bytes into receive window
-                int current_byte_seq = packet->seq_num + i;
-                int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
-                if (place_in_window >= 0 && place_in_window <= socket->recv_window_size) {
-                    if ((socket->recv_window_isvalid)[place_in_window] == false) {
-                        (socket->recv_window)[place_in_window] = (packet->data)[i];
-                        (socket->recv_window_isvalid)[place_in_window] = true;
-                    }
-                }
-            }
+// void receiveNewData(Socket socket, TCPPacket packet) {
+//     for (int i = 0; i < strlen(packet->data); ++i) { // take only missing bytes into receive window
+//                 int current_byte_seq = packet->seq_num + i;
+//                 int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
+//                 if (place_in_window >= 0 && place_in_window <= socket->recv_window_size) {
+//                     if ((socket->recv_window_isvalid)[place_in_window] == false) {
+//                         (socket->recv_window)[place_in_window] = (packet->data)[i];
+//                         (socket->recv_window_isvalid)[place_in_window] = true;
+//                     }
+//                 }
+//             }
 
-    update_recv_window(socket);
-}
+//     update_recv_window(socket);
+// }
 
 TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_ip) {
     // if (packet->flags & FIN) {
