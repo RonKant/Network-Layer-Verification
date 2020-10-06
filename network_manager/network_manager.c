@@ -70,14 +70,13 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
 
     if (NULL == ip_str) {
         destroy_ip_packet(ip_packet);
-        free(tcp_string);
         return -1;
     }
 
     char* dst_fifo_name = get_in_packet_fifo_name(dst_ip);
     if (NULL == dst_fifo_name) {
         destroy_ip_packet(ip_packet);
-        free(tcp_string); free(ip_str);
+        free(ip_str);
         return -1;
     }
 
@@ -86,7 +85,7 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
         printf("Error: destination ip: %s does not exist.\n", dst_ip);
         free(dst_fifo_name);
         destroy_ip_packet(ip_packet);
-        free(tcp_string); free(ip_str);
+        free(ip_str);
         return -1;
     }
 
@@ -94,14 +93,13 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
         close(dst_fifo_fd);
         free(dst_fifo_name);
         destroy_ip_packet(ip_packet);
-        free(tcp_string); free(ip_str);
+        free(ip_str);
         return -1;
     }
 
     close(dst_fifo_fd);
     free(dst_fifo_name);
     destroy_ip_packet(ip_packet);
-    free(tcp_string); 
     free(ip_str);
     return 0;
 }
@@ -453,9 +451,8 @@ int handle_bind_fifo(NetworkManager manager) {
         printf("Error reading bind request.\n");
         return -1;
     }
-
     if (read_len == 0) return 0; // no bind requests.
-
+    printf("A>.\n");
     // bind_request now contains a full bind request of format:
     // <port>_<pid>_<socket-counter>\0
 

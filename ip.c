@@ -117,5 +117,6 @@ IPPacket create_ip_packet(char* src, char* dst, char* data){
 
 void destroy_ip_packet(IPPacket ipPacket){
     if (ipPacket == NULL){ return;}
+    if (NULL != ipPacket->data && strlen(ipPacket->data) > 0) free(ipPacket->data);
     free(ipPacket);
 }
