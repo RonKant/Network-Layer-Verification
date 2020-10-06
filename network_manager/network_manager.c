@@ -549,12 +549,6 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     return 0;
 }
 
-int check_and_handle_connection_queue(SocketID sock_id, NetworkManager manager) {
-    // If socket has a pending connection, and accept fifo is empty - put connection in accept fifo.
-
-    return 0;
-}
-
 int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     // Check socket connect fifo. If there is something and socket is bound AND LISTENING, create new connection 
     // in send SYN mode, and insert it to connection queue and hashmap.
@@ -770,9 +764,6 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
         if (return_value != 0) return return_value;
 
         return_value = check_and_handle_connect_request(sock_id, manager);
-        if (return_value != 0) return return_value;
-
-        return_value = check_and_handle_connection_queue(sock_id, manager);
         if (return_value != 0) return return_value;
 
     } else if (get_socket_state(sock_id) == CONNECTED_SOCKET) {

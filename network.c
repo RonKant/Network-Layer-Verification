@@ -425,22 +425,23 @@ SocketID SocketAccept(SocketID sockid) {
             return NULL;
         }
 
-        int accept_fifo_fd = open(accept_fifo_name, O_RDONLY | O_NONBLOCK);
         if (-1 == accept_fifo_fd) {
-            continue;
+            accept_fifo_fd = open(accept_fifo_name, O_RDONLY | O_NONBLOCK);
+        } else {
+
+            int read_length = read_message_until_char(accept_fifo_fd, message, '\0');
+
+            if (-1 == read_length) {
+                free(accept_fifo_name);
+                close(accept_fifo_fd);
+
+                return ILLEGAL_SOCKET_ID;
+            } else if (read_length > 0) {
+                free(accept_fifo_name);
+                close(accept_fifo_fd);
+                break;
+            }
         }
-
-
-        int read_length = read_message_until_char(accept_fifo_fd, message, '\0');
-        close(accept_fifo_fd);
-        free(accept_fifo_name);
-
-        if (-1 == read_length) {
-            return ILLEGAL_SOCKET_ID;
-        } else if (read_length > 0) {
-            break;
-        }
-    
     }
 
 
