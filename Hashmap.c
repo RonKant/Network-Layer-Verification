@@ -114,13 +114,19 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
     ////sassert(pos >= 0 && pos < hashMap->size);
     Queue posQueue = hashMap->table[pos];
 
+    // printf("Inserting:\n\tKey: (%s, %d), (%s, %d).\n", key->src_ip, key->src_port,
+        // key->dst_ip, key->dst_port);
+
     QUEUE_FOR_EACH(item, posQueue) {
+        // printf("\tItem: (%s, %d), (%s, %d).\n", (((Socket)(item))->id)->src_ip, (((Socket)(item))->id)->src_port,
+        (((Socket)(item))->id)->dst_ip, (((Socket)(item))->id)->dst_port);
         if (compareKeys(key,((Socket)(item))->id)) {
             return HASH_MAP_KEY_EXIST;
         }
     }
     bool b = enqueue(posQueue,socket);
     hashMap->number_of_sockets = hashMap->number_of_sockets +1;
+
     if(b == true){
         return HASH_MAP_SUCCESS;
     } else

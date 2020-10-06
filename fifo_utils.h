@@ -117,7 +117,7 @@ char* get_client_fifo_name(int pid, int socket_counter);
 
 int write_char_to_fifo_name(char* fifo_name, char to_write);
 
-int write_string_to_fifo_name(char* fifo_name, const char* to_write);
+int write_string_to_fifo_name(char* fifo_name, const char* to_write, int len);
 
 
 void close_socket_fifos(Socket socket);

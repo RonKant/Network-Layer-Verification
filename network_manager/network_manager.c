@@ -622,11 +622,32 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         sock_id->src_ip, sock_id->src_port,
         dst_ip, dst_port);
 
+    SocketID connected_client_id = copy_socket_id(sock_id);
+    if (NULL == connected_client_id) {
+        return 0;
+    }
+    strcpy(connected_client_id->dst_ip, dst_ip);
+    connected_client_id->dst_port = dst_port;
+
+    Socket connected_sock = getSocket(manager->sockets, connected_client_id);
+    if (connected_sock != NULL) {
+        // client already exists
+        destroy_socket_id(connected_client_id);
+        return 0;
+    }
+
+    destroy_socket_id(connected_client_id);
+
     Socket sock = getSocket(manager->sockets, sock_id);
     if (sock == NULL || sock->state == LISTEN) {
         return 0;
     } else {
-        hashmapRemove(manager->sockets, sock_id, NULL);
+        HashMapErrors err;
+        hashmapRemove(manager->sockets, sock_id, &err);
+        if (err != HASH_MAP_SUCCESS) {
+            printf("Error: failed removing listener socket from hashmap.\n");
+            return -1;
+        }
         sock->state = SYN_SENT;
         srand(time(NULL));
         sock->seq_of_first_send_window = rand() % 2000 + 1;
@@ -636,7 +657,7 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         strcpy(sock_id->dst_ip, dst_ip);
         sock_id->dst_port = dst_port;
         if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock_id, sock)) {
-            printf("Error: hash map insertion error in socket connect");
+            printf("Error: hash map insertion error in socket connect.\n");
             return -1;
         }
     }
@@ -891,11 +912,11 @@ int notify_accept_client(NetworkManager manager, Socket socket) {
         return -1;
     }
 
-    char reply_string[MAX_SOCKET_STRING_REPR_SIZE];
+    char reply_string[MAX_SOCKET_STRING_REPR_SIZE + 1];
     sprintf(reply_string, "%s_%d", (socket->id)->dst_ip, (socket->id)->dst_port);
+    reply_string[strlen(reply_string)] = '\0';
 
-    int result = write_string_to_fifo_name(accept_fifo_name, reply_string);
-    if (result > 0) result = write_char_to_fifo_name(accept_fifo_name, '\0');
+    int result = write_string_to_fifo_name(accept_fifo_name, reply_string, strlen(reply_string) + 1);
 
     free(accept_fifo_name);
     free(old_id);
