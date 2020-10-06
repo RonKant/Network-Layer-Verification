@@ -112,7 +112,7 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip, Ne
         unlink_socket_fifos(new_conn);
         destroy_socket(new_conn);
         return NULL;
-    }
+    } // should not break iteration since not in queue for each loop.
     if (enqueue(socket->connections, new_conn) == false) {
         hashmapRemove(manager->sockets, new_conn_id, NULL);
         unlink_socket_fifos(new_conn);

@@ -448,8 +448,10 @@ int handle_bind_request(NetworkManager manager, char* bind_request) {
     // send reply to client fifo.
     char* client_fifo_name = get_client_fifo_name(pid, socket_counter);
     if (write_char_to_fifo_name(client_fifo_name, reply) != 0) {
-        if (reply == REQUEST_GRANTED_FIFO) remove_and_destroy_socket(manager, sock_id);
-        result = -1;
+        if (reply == REQUEST_GRANTED_FIFO) {
+            remove_and_destroy_socket(manager, sock_id);
+            result = BREAK_ITERATION;
+        } else result = -1;
     }
 
     free(client_fifo_name);
@@ -706,9 +708,15 @@ int check_and_handle_closed_socket(SocketID id_for_fifo, NetworkManager manager,
 
             close(end_fifo_read_fd);
         }
+        // printf("Removing id: (%s, %d), (%s, %d).\n",
+        //     id_for_fifo->src_ip, id_for_fifo->src_port,
+        //     id_for_fifo->dst_ip, id_for_fifo->dst_port);
+
         printf("Removing socket on port %d.\n", (socket_to_close->id)->src_port);
         remove_and_destroy_socket(manager, socket_to_close->id);
         free(end_fifo_read_name);
+
+        return BREAK_ITERATION;
     }
 
     return 0;
@@ -781,15 +789,15 @@ int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
         ip_set_empty(id_for_fifo->dst_ip);
         id_for_fifo->dst_port = EMPTY_PORT;
     }
-    
+
     int result = check_and_handle_close_command(id_for_fifo, manager, socket_to_close);
     if (0 != result)  {
-        if (id_for_fifo != sock_id) free(id_for_fifo);
+        if (id_for_fifo != sock_id) destroy_socket_id(id_for_fifo);
         return result;
     }
 
     return check_and_handle_closed_socket(id_for_fifo, manager, socket_to_close);
-    if (id_for_fifo != sock_id) free(id_for_fifo);
+    if (id_for_fifo != sock_id) destroy_socket_id(id_for_fifo);
 }
 
 char* get_next_socket_packet_data(Socket sock) {

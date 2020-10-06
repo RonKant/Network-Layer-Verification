@@ -79,8 +79,6 @@ Socket create_bound_socket(SocketID sock_id) {
 
     result->state = CLOSED;
 
-    result->creation_time = clock();
-
     if (0 != create_socket_end_fifos(sock_id)) {
         destroy_socket(result);
         return NULL;
@@ -155,6 +153,7 @@ Socket create_new_socket(){
     s->seq_of_first_send_window = 0;
 
     s->last_send_clock = clock();
+    s->creation_time = clock();
 
 	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
 
