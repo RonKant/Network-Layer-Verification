@@ -71,14 +71,19 @@ Status SocketClose(SocketID sockid) {
         return MEMORY_ERROR;
     }
 
-    int end_fifo_write_fd = open(end_fifo_write_name, O_RDWR);
+    int end_fifo_read_fd = open(end_fifo_read_name, O_RDONLY);
+    close(end_fifo_read_fd);
+
+    int end_fifo_write_fd = open(end_fifo_write_name, O_WRONLY);
     if (end_fifo_write_fd == -1) {
+        printf("o errno : %d.\n", errno);
         free(end_fifo_write_name);
         free(end_fifo_read_name);
         return MEMORY_ERROR;
     }
 
     if (write(end_fifo_write_fd, "E", 1) < 1) {
+        printf("oo errno: %d.\n", errno);
         free(end_fifo_write_name);
         free(end_fifo_read_name);
         close(end_fifo_write_fd);
@@ -89,6 +94,7 @@ Status SocketClose(SocketID sockid) {
     free(end_fifo_write_name);
 
     unlink(end_fifo_read_name);
+    free(end_fifo_read_name);
     
     return SUCCESS;
 }

@@ -19,11 +19,21 @@
 
 void unlink_socket_fifos_server_side(Socket sock) {
     char* end_fifo_write_name = get_end_fifo_write_end_name(sock->id);
-    if (NULL == end_fifo_write_name) {
+
+    if (NULL == end_fifo_write_name
+        || 0 != unlink(end_fifo_write_name)) {
         printf("Failed unlinking end fifo write end of socket (delete manually).\n");
     }
 
-    unlink(end_fifo_write_name);
+    free(end_fifo_write_name);
+
+    char* accept_fifo_name = get_accept_fifo_write_end_name(sock->id);
+    if (NULL == accept_fifo_name
+        || 0 != unlink(accept_fifo_name)) {
+        printf("Failed unlinking accept fifo of socket (delete manually).\n");
+    }
+
+    free(accept_fifo_name);
 }
 
 IPPacket read_ip_packet_from_file(int fd) {
@@ -679,21 +689,25 @@ int check_and_handle_out_fifo(SocketID sock_id, NetworkManager manager) {
 /**
  * If socket state is closed, inform user. Also free all memory related to socket.
  */
-int check_and_handle_closed_socket(Socket sock, NetworkManager manager) {
-    if (CLOSED == sock->state 
-        && (DIFF2SEC(clock() - sock->creation_time)) > SOCKET_TIMEOUT) {
-        char* end_fifo_read_name = get_end_fifo_read_end_name(sock->id);
+int check_and_handle_closed_socket(SocketID id_for_fifo, NetworkManager manager,
+    Socket socket_to_close) {
+    if (CLOSED == socket_to_close->state 
+        && (DIFF2SEC(clock() - socket_to_close->creation_time)) > SOCKET_TIMEOUT) {
+
+        char* end_fifo_read_name = get_end_fifo_read_end_name(id_for_fifo);
         if (NULL == end_fifo_read_name) return 0;
-
-        int end_fifo_read_fd = open(end_fifo_read_name, O_RDONLY | O_NONBLOCK);
+        // printf("3 %s.\n", end_fifo_read_name);
+        int end_fifo_read_fd = open(end_fifo_read_name, O_RDWR);
+        // printf("4 %d.\n", errno);
         if (-1 != end_fifo_read_fd) {
-
             if (write(end_fifo_read_fd, "E", 1) == 1) {
-                remove_and_destroy_socket(manager, sock->id);
+                printf("Failed to notify active user about socket closing.\n");
             }
 
             close(end_fifo_read_fd);
         }
+        printf("Removing socket on port %d.\n", (socket_to_close->id)->src_port);
+        remove_and_destroy_socket(manager, socket_to_close->id);
         free(end_fifo_read_name);
     }
 
@@ -703,11 +717,30 @@ int check_and_handle_closed_socket(Socket sock, NetworkManager manager) {
 /**
  * If received close command - change socket state to closed.
  */
-int check_and_handle_close_command(Socket sock, NetworkManager manager) {
-    char* end_fifo_write_name = get_end_fifo_write_end_name(sock->id);
+int check_and_handle_close_command(SocketID id_for_fifo, NetworkManager manager,
+    Socket socket_to_close) {
+
+    char* end_fifo_write_name = get_end_fifo_write_end_name(id_for_fifo);
     if (NULL == end_fifo_write_name) return 0;
 
-    int end_fifo_write_fd = open(end_fifo_write_name, O_RDONLY | O_NONBLOCK);
+    // for synching.
+    char* end_fifo_read_name = get_end_fifo_read_end_name(id_for_fifo); 
+    if (NULL == end_fifo_read_name) {
+        free(end_fifo_write_name);
+        return 0;
+    }
+
+    int end_fifo_read_fd = open(end_fifo_read_name, O_WRONLY | O_NONBLOCK);
+    if (-1 == end_fifo_read_fd) {
+        free(end_fifo_read_name);
+        free(end_fifo_write_name);
+        return 0;
+    }
+
+    close(end_fifo_read_fd);
+    free(end_fifo_read_name);
+
+    int end_fifo_write_fd = open(end_fifo_write_name, O_RDONLY);
     if (-1 == end_fifo_write_fd) {
         free(end_fifo_write_name);
         return 0;
@@ -715,9 +748,15 @@ int check_and_handle_close_command(Socket sock, NetworkManager manager) {
 
     char message;
     if (read(end_fifo_write_fd, &message, 1) == 1) {
-        sock->state = CLOSED;
+        printf("Closing socket on port %d (By user command).\n", (socket_to_close->id)->src_port);
+        
+        if (socket_to_close->state == SYN_SENT) {
+            ip_set_empty((socket_to_close->id)->dst_ip);
+            (socket_to_close->id)->dst_port = EMPTY_PORT;
+        }
+        
+        socket_to_close->state = CLOSED;
     }
-
 
     close(end_fifo_write_fd);
     free(end_fifo_write_name);
@@ -729,13 +768,28 @@ int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
     // Check end fifo. If there is something: close socket and free it's memory.
     // If socket is closed, write into end fifo and remove it.
 
-    Socket sock = getSocket(manager->sockets, sock_id);
-    if (NULL == sock) return 0;
+    Socket socket_to_close = getSocket(manager->sockets, sock_id);
+    if (NULL == socket_to_close) return 0;
+    SocketID id_for_fifo = sock_id;
 
-    int result = check_and_handle_close_command(sock, manager);
-    if (0 != result) return result;
+    if (socket_to_close->state == SYN_SENT) {
+        // this is a not yet connected socket - so it's end request is in 
+        // bound only fifo
+        id_for_fifo = copy_socket_id(sock_id);
+        if (NULL == id_for_fifo) return 0;
 
-    return check_and_handle_closed_socket(sock, manager);
+        ip_set_empty(id_for_fifo->dst_ip);
+        id_for_fifo->dst_port = EMPTY_PORT;
+    }
+    
+    int result = check_and_handle_close_command(id_for_fifo, manager, socket_to_close);
+    if (0 != result)  {
+        if (id_for_fifo != sock_id) free(id_for_fifo);
+        return result;
+    }
+
+    return check_and_handle_closed_socket(id_for_fifo, manager, socket_to_close);
+    if (id_for_fifo != sock_id) free(id_for_fifo);
 }
 
 char* get_next_socket_packet_data(Socket sock) {
@@ -933,6 +987,10 @@ int managerLoop(NetworkManager manager) {
 
 
 int notify_connect_client(NetworkManager manager, Socket socket) {
+    if (0 != create_socket_end_fifos(socket->id)) {
+        return -1;
+    }
+
     SocketID old_id = copy_socket_id(socket->id);
     if (NULL == old_id) return -1;
     old_id->dst_port = EMPTY_PORT;
