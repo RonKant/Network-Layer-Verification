@@ -452,7 +452,6 @@ int handle_bind_fifo(NetworkManager manager) {
         return -1;
     }
     if (read_len == 0) return 0; // no bind requests.
-    printf("A>.\n");
     // bind_request now contains a full bind request of format:
     // <port>_<pid>_<socket-counter>\0
 
@@ -462,6 +461,9 @@ int handle_bind_fifo(NetworkManager manager) {
 int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     // Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
     // return 0 on non critical errors so the entire system does not crash.
+
+    Socket sock = getSocket(manager->sockets, sock_id);
+    if (sock == NULL || sock->state == LISTEN) return 0;
 
     char* listen_fifo_write_name = get_listen_fifo_write_end_name(sock_id);
     if (NULL == listen_fifo_write_name) return 0;
@@ -488,8 +490,6 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         return 0;
     }
 
-
-
     int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDONLY);
     if (-1 == listen_fifo_write_fd) {
         free(listen_fifo_write_name); free(accept_fifo_name);
@@ -509,19 +509,15 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
-    Socket sock = getSocket(manager->sockets, sock_id);
-    if (sock == NULL || sock->state == LISTEN) {
+    sock->connections = QueueCreate(*request);
+    if (sock->connections == NULL) {
         reply = REQUEST_DENIED_FIFO;
     } else {
-        sock->connections = QueueCreate(*request);
-        if (sock->connections == NULL) {
-            reply = REQUEST_DENIED_FIFO;
-        } else {
-            sock->state = LISTEN;
-            sock->max_connections = (int)(*request);
-            reply = REQUEST_GRANTED_FIFO;
-        }
+        sock->state = LISTEN;
+        sock->max_connections = (int)(*request);
+        reply = REQUEST_GRANTED_FIFO;
     }
+
 
     if (REQUEST_GRANTED_FIFO == reply) {
         if (mkfifo(accept_fifo_name, DEFAULT_FIFO_MODE) != 0) {
@@ -536,7 +532,6 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
     free(accept_fifo_name);
 
-
     // send reply to client fifo.
     if (write(listen_fifo_read_fd, &reply, 1) != 1) {
         printf("Error: writing response %c to client on port %d failed.\n", reply, sock_id->src_port);
@@ -546,7 +541,6 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
             sock->connections = NULL;
         }
     }
-
     close(listen_fifo_write_fd);
     free(listen_fifo_write_name); 
     close(listen_fifo_read_fd);
@@ -748,7 +742,6 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
     // printf("\t(%s, %d) -> (%s, %d)\n", sock_id->src_ip, sock_id->src_port, sock_id->dst_ip, sock_id->dst_port);
     int return_value = 0;
     if (get_socket_state(sock_id) == BOUND_ONLY_SOCKET) {
-
         return_value = check_and_handle_listen_request(sock_id, manager);
         if (return_value != 0) return return_value;
 
@@ -757,6 +750,7 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
 
         return_value = check_and_handle_connection_queue(sock_id, manager);
         if (return_value != 0) return return_value;
+
     } else if (get_socket_state(sock_id) == CONNECTED_SOCKET) {
         return_value = check_and_handle_out_fifo(sock_id, manager);
         if (return_value != 0) return return_value;
@@ -764,7 +758,7 @@ int handle_socket_in_network(SocketID sock_id, NetworkManager manager) {
 
     return_value = check_and_handle_socket_end_fifo(sock_id, manager);
     if (return_value != 0) return return_value;
-    
+
     return_value = check_and_handle_send_window(sock_id, manager);
     if (return_value != 0) return return_value;
 
@@ -859,7 +853,6 @@ int managerLoop(NetworkManager manager) {
             if (result == BREAK_ITERATION) break;
             if (-1 == result) return -1;
         }
-
     }
 }
 

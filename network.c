@@ -137,6 +137,13 @@ Status SocketBind(SocketID sockid, Address addrport) {
             free(my_fifo_name);
             break;
         }
+
+        if (1 < read_size) {
+            printf("read size > 1 - should not happen (debug.\n");
+            close(my_fifo_fd);
+            unlink(my_fifo_name);
+            free(my_fifo_name);
+        }
     }
 
     if (answer == REQUEST_GRANTED_FIFO) {
@@ -209,25 +216,47 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     // await answer
 
     char answer;
-    int read_size = read_nonzero_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
-    if (-1 == read_size) {
-        close(listen_fifo_read_fd);
-        unlink(listen_fifo_read_end_name);
-        free(listen_fifo_read_end_name);
 
-        unlink(listen_fifo_write_end_name);
-        free(listen_fifo_write_end_name);
-        return MEMORY_ERROR;
+
+    clock_t start = clock();
+
+    while (1) {
+        int read_size = read_entire_message(listen_fifo_read_fd, &answer, sizeof(answer));
+        if (-1 == read_size) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+
+            unlink(listen_fifo_write_end_name);
+            free(listen_fifo_write_end_name);
+            return MEMORY_ERROR;
+        }
+
+        if (1 == read_size) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+
+            unlink(listen_fifo_write_end_name);
+            free(listen_fifo_write_end_name);
+            break;
+        }
+
+        clock_t current = clock();
+        double time_passed = DIFF2SEC(current - start);
+        // printf("clock: %f.\n", time_passed);
+        if (time_passed > SOCKET_TIMEOUT) {
+            close(listen_fifo_read_fd);
+            unlink(listen_fifo_read_end_name);
+            free(listen_fifo_read_end_name);
+
+            unlink(listen_fifo_write_end_name);
+            free(listen_fifo_write_end_name);
+            return TIMED_OUT;
+        }
+    
     }
 
-    if (1 == read_size) {
-        close(listen_fifo_read_fd);
-        unlink(listen_fifo_read_end_name);
-        free(listen_fifo_read_end_name);
-
-        unlink(listen_fifo_write_end_name);
-        free(listen_fifo_write_end_name);
-    }
 
     Status return_value;
     if (answer == REQUEST_GRANTED_FIFO) {
