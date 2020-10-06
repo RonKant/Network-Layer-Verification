@@ -559,6 +559,9 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     // Check socket connect fifo. If there is something and socket is bound AND LISTENING, create new connection 
     // in send SYN mode, and insert it to connection queue and hashmap.
 
+    Socket sock = getSocket(manager->sockets, sock_id);
+    if (sock == NULL || sock->state != CLOSED) return 0;
+
     char* connect_fifo_read_end_name = get_connect_fifo_read_end_name(sock_id);
     if (NULL == connect_fifo_read_end_name) return 0;
 
@@ -638,7 +641,7 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
 
     destroy_socket_id(connected_client_id);
 
-    Socket sock = getSocket(manager->sockets, sock_id);
+    sock = getSocket(manager->sockets, sock_id);
     if (sock == NULL || sock->state == LISTEN) {
         return 0;
     } else {

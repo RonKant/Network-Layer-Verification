@@ -406,20 +406,43 @@ SocketID SocketAccept(SocketID sockid) {
     char* accept_fifo_name = get_accept_fifo_write_end_name(sockid);
     if (NULL == accept_fifo_name) return ILLEGAL_SOCKET_ID;
 
-    int accept_fifo_fd = open(accept_fifo_name, O_RDONLY);
-    if (-1 == accept_fifo_fd) {
-        free(accept_fifo_name);
-        return ILLEGAL_SOCKET_ID;
-    }
 
     char message[MAX_SOCKET_STRING_REPR_SIZE];
 
-    int read_length = read_nonzero_message_until_char(accept_fifo_fd, message, '\0');
-    close(accept_fifo_fd);
-    free(accept_fifo_name);
-    if (-1 == read_length) {
-        return ILLEGAL_SOCKET_ID;
+    clock_t start = clock();
+
+    int accept_fifo_fd = -1;
+
+    while (1) {
+
+        clock_t current = clock();
+        double time_passed = DIFF2SEC(current - start);
+        // printf("clock: %f.\n", time_passed);
+        if (time_passed > SOCKET_TIMEOUT) {
+            if (accept_fifo_fd != -1) close(accept_fifo_fd);
+            free(accept_fifo_name);
+            printf("Accept request timed out.\n");
+            return NULL;
+        }
+
+        int accept_fifo_fd = open(accept_fifo_name, O_RDONLY | O_NONBLOCK);
+        if (-1 == accept_fifo_fd) {
+            continue;
+        }
+
+
+        int read_length = read_message_until_char(accept_fifo_fd, message, '\0');
+        close(accept_fifo_fd);
+        free(accept_fifo_name);
+
+        if (-1 == read_length) {
+            return ILLEGAL_SOCKET_ID;
+        } else if (read_length > 0) {
+            break;
+        }
+    
     }
+
 
     char ip[MAX_IP_LENGTH + 1];
     int port;
