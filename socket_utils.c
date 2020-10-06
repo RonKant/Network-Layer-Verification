@@ -79,6 +79,8 @@ Socket create_bound_socket(SocketID sock_id) {
 
     result->state = CLOSED;
 
+    result->creation_time = clock();
+
     result->id = sock_id;
 
     if (result->id == NULL) {

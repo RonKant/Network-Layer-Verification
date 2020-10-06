@@ -17,6 +17,10 @@
 
 #define BREAK_ITERATION 2
 
+void unlink_socket_fifos_server_side(Socket sock) {
+    //TODO
+}
+
 IPPacket read_ip_packet_from_file(int fd) {
     char total_length_str[11];
 
@@ -319,7 +323,8 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
     }
 
     hashmapRemove(manager->sockets, sock_id, NULL);
-    //destroy_socket(to_remove); //this is done in hashmap remove (shouldn't TODO)
+    unlink_socket_fifos_server_side(to_remove);
+    destroy_socket(to_remove);
 }
 
 
@@ -666,11 +671,66 @@ int check_and_handle_out_fifo(SocketID sock_id, NetworkManager manager) {
     return 0;
 }
 
+/**
+ * If socket state is closed, inform user. Also free all memory related to socket.
+ */
+int check_and_handle_closed_socket(Socket sock, NetworkManager manager) {
+    if (CLOSED == sock->state 
+        && (DIFF2SEC(clock() - sock->creation_time)) > SOCKET_TIMEOUT) {
+        char* end_fifo_read_name = get_end_fifo_read_end_name(sock->id);
+        if (NULL == end_fifo_read_name) return 0;
+
+        int end_fifo_read_fd = open(end_fifo_read_name, O_RDONLY | O_NONBLOCK);
+        if (-1 != end_fifo_read_fd) {
+
+            if (write(end_fifo_read_fd, "E", 1) == 1) {
+                remove_and_destroy_socket(manager, sock->id);
+            }
+
+            close(end_fifo_read_fd);
+        }
+        free(end_fifo_read_name);
+    }
+
+    return 0;
+}
+
+/**
+ * If received close command - change socket state to closed.
+ */
+int check_and_handle_close_command(Socket sock, NetworkManager manager) {
+    char* end_fifo_write_name = get_end_fifo_write_end_name(sock->id);
+    if (NULL == end_fifo_write_name) return 0;
+
+    int end_fifo_write_fd = open(end_fifo_write_name, O_RDONLY | O_NONBLOCK);
+    if (-1 == end_fifo_write_fd) {
+        free(end_fifo_write_name);
+        return 0;
+    }
+
+    char message;
+    if (read(end_fifo_write_fd, &message, 1) == 1) {
+        sock->state = CLOSED;
+    }
+
+
+    close(end_fifo_write_fd);
+    free(end_fifo_write_name);
+
+    return 0;
+}
+
 int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
     // Check end fifo. If there is something: close socket and free it's memory.
     // If socket is closed, write into end fifo and remove it.
 
-    return 0;
+    Socket sock = getSocket(manager->sockets, sock_id);
+    if (NULL == sock) return 0;
+
+    int result = check_and_handle_close_command(sock, manager);
+    if (0 != result) return result;
+
+    return check_and_handle_closed_socket(sock, manager);
 }
 
 char* get_next_socket_packet_data(Socket sock) {

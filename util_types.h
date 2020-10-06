@@ -117,8 +117,9 @@ typedef struct {
     Queue connections; // contains pending connections for listening sockets.
 
 	clock_t last_send_clock;
-    // TODO Change to Tomer's Queue.
-} * Socket; // change to Socket after integration TODO
+    clock_t creation_time;
+
+} * Socket;
 
 
 // From fifo_utils.h
