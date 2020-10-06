@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "network.h"
 #include "socket_utils.h"
@@ -34,11 +35,23 @@ int main() {
                 printf("Failed accepting a new connection.\n");
             } else {
                 printf("Received a new connection from (%s, %d)\n", new_connection->dst_ip, new_connection->dst_port);
+                
+                sleep(5);
+                
+                if (SUCCESS != SocketClose(new_connection)) {
+                    printf("Failed closing new connection socket.\n");
+                } else {
+                    printf("New connection socket closed manually.\n");
+                }
                 destroy_socket_id(new_connection);
             }
         }
+        if (SUCCESS != SocketClose(sock)) {
+            printf("Failed closing listener socket.\n");
+        } else {
+            printf("Listener socket closed manually.\n");
+        } 
     }
-
 
     AddressDestroy(addr);
     SocketDestroy(sock);
