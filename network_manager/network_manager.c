@@ -567,17 +567,30 @@ int check_and_handle_connection_queue(SocketID sock_id, NetworkManager manager) 
 int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     // Check socket connect fifo. If there is something and socket is bound AND LISTENING, create new connection 
     // in send SYN mode, and insert it to connection queue and hashmap.
+
+    char* connect_fifo_read_end_name = get_connect_fifo_read_end_name(sock_id);
+    if (NULL == connect_fifo_read_end_name) return 0;
+
+    int connect_fifo_read_fd = open(connect_fifo_read_end_name, O_WRONLY | O_NONBLOCK);
+    if (-1 == connect_fifo_read_fd) {
+        free(connect_fifo_read_end_name);
+        return 0;
+    }
+
+    close(connect_fifo_read_fd);
+    free(connect_fifo_read_end_name);
+
     char* connect_fifo_write_end_name = get_connect_fifo_write_end_name(sock_id);
     if (NULL == connect_fifo_write_end_name) return 0;
 
-    int connect_fifo_write_fd = open(connect_fifo_write_end_name, O_RDONLY | O_NONBLOCK);
-    if (-1 == connect_fifo_write_fd) {
+    int connect_fifo_write_fd = open(connect_fifo_write_end_name, O_RDONLY);
+    if (-1 == connect_fifo_write_fd) {  
         free(connect_fifo_write_end_name);
         return 0;
     }
 
     char request[MAX_SOCKET_STRING_REPR_SIZE];
-    int read_length = read_message_until_char(connect_fifo_write_fd, request, '\0');
+    int read_length = read_nonzero_message_until_char(connect_fifo_write_fd, request, '\0');
 
     if (read_length == -1 || read_length == 0) {
         close(connect_fifo_write_fd);

@@ -78,7 +78,7 @@ Status SocketBind(SocketID sockid, Address addrport) {
         return MEMORY_ERROR;
     }
 
-    int bind_request_fifo_fd = open(bind_request_fifo_name, O_RDWR);
+    int bind_request_fifo_fd = open(bind_request_fifo_name, O_WRONLY);
     if (-1 == bind_request_fifo_fd) {
         printf("Failed opening fifo %s.\n\terrno: %d.\n", bind_request_fifo_name, errno);
         free(bind_request_fifo_name); free(my_fifo_name);
@@ -259,14 +259,13 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
 
     if (0 != mkfifo(connect_fifo_write_name, DEFAULT_FIFO_MODE)
         || 0 != mkfifo(connect_fifo_read_name, DEFAULT_FIFO_MODE)) {
-            printf("2.\n");
             free(connect_fifo_write_name);
             free(connect_fifo_read_name);
             return MEMORY_ERROR;
         }
 
-    int connect_fifo_write_fd = open(connect_fifo_write_name, O_RDWR);
-    if (-1 == connect_fifo_write_fd) {
+    int connect_fifo_read_fd = open(connect_fifo_read_name, O_RDONLY);
+    if (-1 == connect_fifo_read_fd) {
         unlink(connect_fifo_read_name);
         unlink(connect_fifo_write_name);
         free(connect_fifo_write_name);
@@ -274,15 +273,16 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
         return MEMORY_ERROR;
     }
 
-    int connect_fifo_read_fd = open(connect_fifo_read_name, O_RDONLY | O_NONBLOCK);
-    if (-1 == connect_fifo_read_fd) {
-        close(connect_fifo_write_fd);
+    int connect_fifo_write_fd = open(connect_fifo_write_name, O_WRONLY);
+    if (-1 == connect_fifo_write_fd) {
+        close(connect_fifo_read_fd);
         unlink(connect_fifo_read_name);
         unlink(connect_fifo_write_name);
         free(connect_fifo_write_name);
         free(connect_fifo_read_name);
         return MEMORY_ERROR;
     }
+
 
     // // all fifos are open - send request and await answer.
     char message[MAX_SOCKET_STRING_REPR_SIZE];
