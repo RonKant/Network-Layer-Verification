@@ -119,7 +119,7 @@ HashMapErrors insertSocket(HashMap hashMap,SocketID key,Socket socket){
 
     QUEUE_FOR_EACH(item, posQueue) {
         // printf("\tItem: (%s, %d), (%s, %d).\n", (((Socket)(item))->id)->src_ip, (((Socket)(item))->id)->src_port,
-        (((Socket)(item))->id)->dst_ip, (((Socket)(item))->id)->dst_port);
+            // (((Socket)(item))->id)->dst_ip, (((Socket)(item))->id)->dst_port);
         if (compareKeys(key,((Socket)(item))->id)) {
             return HASH_MAP_KEY_EXIST;
         }
