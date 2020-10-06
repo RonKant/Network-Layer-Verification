@@ -209,7 +209,7 @@ int write_string_to_fifo_name(char* fifo_name, const char* to_write, int len) {
             return -1;
         }
         close(fifo_fd);
-        return strlen(to_write);
+        return len;
     }
 }
 

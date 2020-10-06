@@ -7,7 +7,8 @@
 #include "network_manager/network_manager.h"
 
 TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
-    // printf("socket: %d.\n", (socket->id)->src_port);
+    // printf("packet to port %d (recevied by port %d), with flags %d, in state %d.\n",
+    //     packet->dst_port, (socket->id)->src_port, packet->flags, socket->state);
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {
         socket->state = CLOSED;
         return NULL;
@@ -53,6 +54,8 @@ TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkMa
             response_packet = handle_packet_time_wait(socket, packet, src_ip);
         break;
     }
+
+    // printf("\tmoved to state %d.\n", socket->state);
 
     return response_packet;
 }

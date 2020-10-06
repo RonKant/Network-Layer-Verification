@@ -200,13 +200,13 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
         ip_set_empty(id->dst_ip);
         id->dst_port = EMPTY_PORT;
         sock = getSocket(manager->sockets, id);
+
         if (NULL != sock) {
             reply = handle_packet(sock, tcp_packet, id->src_ip, manager);
         } else {
             printf("TCP recepient not found.\n");
         }
     }
-
     if (NULL != reply) {
         if (send_TCP_packet(reply, manager, id->dst_ip) == 0)
             sock->last_send_clock = clock();
@@ -333,7 +333,6 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
  */
 int handle_in_packets_fifo(NetworkManager manager) {
     int in_packet_fd = manager->in_packet_fifo_fd;
-
     for (int i = 0; i < MAX_HANDLES_PER_EPOCH; ++i) {
 
         IPPacket packet = read_ip_packet_from_file(in_packet_fd);
@@ -345,7 +344,6 @@ int handle_in_packets_fifo(NetworkManager manager) {
             free(packet);
             return 0;
         }
-
         destroy_ip_packet(packet);
     }
 
@@ -851,17 +849,14 @@ int managerLoop(NetworkManager manager) {
             terminate_manager(manager);
             return 0;
         }
-
         if (handle_bind_fifo(manager) != 0) {
             return -1;
         }
-
         // go over connect requests fifo, handle them
 
         if (handle_in_packets_fifo(manager) != 0) {
             return -1;
         }
-
         // printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
             int result = handle_socket_in_network(sock_id, manager);
@@ -910,7 +905,17 @@ int notify_accept_client(NetworkManager manager, Socket socket) {
     sprintf(reply_string, "%s_%d", (socket->id)->dst_ip, (socket->id)->dst_port);
     reply_string[strlen(reply_string)] = '\0';
 
-    int result = write_string_to_fifo_name(accept_fifo_name, reply_string, strlen(reply_string) + 1);
+
+    int accept_fifo_fd = open(accept_fifo_name, O_WRONLY | O_NONBLOCK);
+    int result;
+    if (-1 == accept_fifo_fd) {
+        result = -1;
+    } else {
+        if (write(accept_fifo_fd, reply_string, strlen(reply_string) + 1) == strlen(reply_string) + 1)
+            result = 0;
+        else result = -1;
+        close(accept_fifo_fd);
+    }
 
     free(accept_fifo_name);
     free(old_id);
