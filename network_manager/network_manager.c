@@ -796,8 +796,9 @@ int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
         return result;
     }
 
-    return check_and_handle_closed_socket(id_for_fifo, manager, socket_to_close);
+    result = check_and_handle_closed_socket(id_for_fifo, manager, socket_to_close);
     if (id_for_fifo != sock_id) destroy_socket_id(id_for_fifo);
+    return result;
 }
 
 char* get_next_socket_packet_data(Socket sock) {
