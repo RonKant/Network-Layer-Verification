@@ -125,6 +125,12 @@ void close_socket_fifos(Socket socket);
 void unlink_socket_fifos(Socket socket);
 
 /**
+ * Creates either both end fifos (and returns 0), or creates neither and returns -1.
+ */
+int create_socket_end_fifos(SocketID sock_id);
+
+
+/**
  * Reads from fd into buf.
  * If fd is empty - returns 0.
  * If fd contains anything - will block and read into buf until entire len has been reached.

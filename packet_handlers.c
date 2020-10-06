@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "fifo_utils.h"
 #include "packet_handlers.h"
 #include "network.h"
 #include "network_manager/network_manager.h"
@@ -91,6 +92,12 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip, Ne
         return NULL;
     }
 
+    if (0 != create_socket_end_fifos(new_conn_id)) {
+        destroy_socket(new_conn);
+        destroy_socket_id(new_conn_id);
+        return NULL;
+    }
+
     new_conn->id = new_conn_id;
 
     srand(time(NULL));
@@ -102,11 +109,13 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip, Ne
     new_conn->seq_of_first_recv_window = packet->seq_num+1;
 
     if (insertSocket(manager->sockets, new_conn_id, new_conn) != HASH_MAP_SUCCESS) {
+        unlink_socket_fifos(new_conn);
         destroy_socket(new_conn);
         return NULL;
     }
     if (enqueue(socket->connections, new_conn) == false) {
         hashmapRemove(manager->sockets, new_conn_id, NULL);
+        unlink_socket_fifos(new_conn);
         destroy_socket(new_conn);
         return NULL;
     }

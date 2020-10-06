@@ -18,7 +18,12 @@
 #define BREAK_ITERATION 2
 
 void unlink_socket_fifos_server_side(Socket sock) {
-    //TODO
+    char* end_fifo_write_name = get_end_fifo_write_end_name(sock->id);
+    if (NULL == end_fifo_write_name) {
+        printf("Failed unlinking end fifo write end of socket (delete manually).\n");
+    }
+
+    unlink(end_fifo_write_name);
 }
 
 IPPacket read_ip_packet_from_file(int fd) {

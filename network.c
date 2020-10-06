@@ -65,21 +65,31 @@ Status SocketClose(SocketID sockid) {
     char* end_fifo_write_name = get_end_fifo_write_end_name(sockid);
     if (NULL == end_fifo_write_name) return MEMORY_ERROR;
 
+    char* end_fifo_read_name = get_end_fifo_read_end_name(sockid);
+    if (NULL == end_fifo_read_name) {
+        free(end_fifo_write_name);
+        return MEMORY_ERROR;
+    }
+
     int end_fifo_write_fd = open(end_fifo_write_name, O_RDWR);
     if (end_fifo_write_fd == -1) {
         free(end_fifo_write_name);
+        free(end_fifo_read_name);
         return MEMORY_ERROR;
     }
 
     if (write(end_fifo_write_fd, "E", 1) < 1) {
         free(end_fifo_write_name);
+        free(end_fifo_read_name);
         close(end_fifo_write_fd);
         return MEMORY_ERROR;
     }
 
-    free(end_fifo_write_name);
     close(end_fifo_write_fd);
+    free(end_fifo_write_name);
 
+    unlink(end_fifo_read_name);
+    
     return SUCCESS;
 }
 

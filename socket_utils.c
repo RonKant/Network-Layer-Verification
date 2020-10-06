@@ -81,12 +81,12 @@ Socket create_bound_socket(SocketID sock_id) {
 
     result->creation_time = clock();
 
-    result->id = sock_id;
-
-    if (result->id == NULL) {
+    if (0 != create_socket_end_fifos(sock_id)) {
         destroy_socket(result);
         return NULL;
     }
+
+    result->id = sock_id;
 
     return result;
 }

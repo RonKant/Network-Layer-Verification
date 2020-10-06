@@ -262,6 +262,29 @@ void unlink_socket_fifos(Socket socket) {
 }
 
 
+int create_socket_end_fifos(SocketID sock_id) {
+    char* end_fifo_read_name = get_end_fifo_read_end_name(sock_id);
+    char* end_fifo_write_name = get_end_fifo_write_end_name(sock_id);
+
+    if (NULL == end_fifo_read_name
+        || NULL == end_fifo_write_name)
+        return -1;
+
+
+    int result = 0;
+
+    if (0 != mkfifo(end_fifo_read_name, DEFAULT_FIFO_MODE)
+        || 0 != mkfifo(end_fifo_write_name, DEFAULT_FIFO_MODE)) {
+        unlink(end_fifo_read_name);
+        unlink(end_fifo_write_name);
+        result = -1;
+    }
+
+    free(end_fifo_read_name);
+    free(end_fifo_write_name);
+    return result;
+}
+
 /**
  * Like read_entire_message, but will not return 0 (will keep blocking).
  */
