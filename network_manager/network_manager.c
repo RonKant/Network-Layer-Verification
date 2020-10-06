@@ -465,22 +465,22 @@ int handle_bind_fifo(NetworkManager manager) {
 int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     // Check listen fifo. If found something: If socket CAN listen, do stuff. otherwise send N.
     // return 0 on non critical errors so the entire system does not crash.
-    printf("a.\n");
+
     char* listen_fifo_write_name = get_listen_fifo_write_end_name(sock_id);
     if (NULL == listen_fifo_write_name) return 0;
-    printf("b.\n");
+
     char* accept_fifo_name = get_accept_fifo_write_end_name(sock_id);
     if (NULL == accept_fifo_name) {
         free(listen_fifo_write_name);
         return 0;
     }
-    printf("c.\n");
+
     int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDWR);
     if (-1 == listen_fifo_write_fd) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
-    printf("d.\n");
+
     char request[1];
     int read_length = read_entire_message(listen_fifo_write_fd, request, 1);
     if (read_length == -1 || read_length == 0) {
@@ -488,7 +488,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
     }
-    printf("e.\n");
+
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
@@ -631,9 +631,48 @@ int check_and_handle_socket_end_fifo(SocketID sock_id, NetworkManager manager) {
     return 0;
 }
 
-int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
-    // Check socket out queue/buffer. If (condition) - resend packet of unacked data.
+char* get_next_socket_packet_data(Socket sock) {
+    if (NULL == sock || NULL == sock->send_window) return NULL;
+    char* data = (char*)malloc(MAX_DATA_PER_PACKET * sizeof(char) + 1);
+    if (NULL == data) return NULL;
 
+    int bytes_added = 0;
+
+    QUEUE_FOR_EACH(item, sock->send_window) {
+        char* byte = item;
+        if (NULL == byte) break;
+
+        data[bytes_added++] = *byte;
+
+        if (bytes_added == MAX_DATA_PER_PACKET) break;
+    }
+
+    data[bytes_added] = '\0';
+
+    return data;
+}
+
+int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
+    Socket sock = getSocket(manager->sockets, sock_id);
+    if (NULL == sock || sock->state != ESTABLISED) return 0;
+    // Check socket out queue/buffer. If (condition) - resend packet of unacked data.
+    if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
+
+        char* est_socket_data = get_next_socket_packet_data(sock);
+        if (est_socket_data == NULL) est_socket_data = "";
+
+        TCPPacket ack_packet = construct_packet(sock, est_socket_data, ACK, sock_id->dst_port);
+        free(est_socket_data);
+        if (NULL == ack_packet) return 0;
+
+        ack_packet->seq_num = sock->seq_of_first_send_window;
+        ack_packet->ack_num = sock->seq_of_first_recv_window;
+
+        if (0 == send_TCP_packet(ack_packet, manager, sock_id->dst_ip)) {
+            sock->last_send_clock = clock();
+        }
+        destroy_tcp_packet(ack_packet);
+    }
     return 0;
 }
 
@@ -658,7 +697,6 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
         }
     } else if (sock->state == SYN_RECEIVED) {
         if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
-
             TCPPacket syn_ack_packet = construct_packet(sock, "", SYN | ACK, sock_id->dst_port);
             if (NULL == syn_ack_packet) return 0;
 
@@ -671,7 +709,6 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
             destroy_tcp_packet(syn_ack_packet);
         }
     }
-
     return 0;
 }
 
@@ -768,31 +805,28 @@ int managerLoop(NetworkManager manager) {
     }
 
     while (1) {
-        printf("1.\n");
         if (should_terminate_manager(manager)) {
             printf("Terminating manager\n");
             terminate_manager(manager);
             return 0;
         }
-        printf("2.\n");
+
         if (handle_bind_fifo(manager) != 0) {
             return -1;
         }
-        printf("3.\n");
+
         // go over connect requests fifo, handle them
 
         if (handle_in_packets_fifo(manager) != 0) {
             return -1;
         }
-        printf("4.\n");
+
         // printf("Connected sockets:\n");
         HASH_MAP_FOREACH(sock_id, manager->sockets) {
-            printf(".");
             int result = handle_socket_in_network(sock_id, manager);
             if (result == BREAK_ITERATION) break;
             if (-1 == result) return -1;
         }
-        printf("\n5\n");
 
     }
 }
@@ -836,7 +870,7 @@ int notify_accept_client(NetworkManager manager, Socket socket) {
     sprintf(reply_string, "%s_%d", (socket->id)->dst_ip, (socket->id)->dst_port);
 
     int result = write_string_to_fifo_name(accept_fifo_name, reply_string);
-    if (result == 0) result = write_char_to_fifo_name(accept_fifo_name, '\0');
+    if (result > 0) result = write_char_to_fifo_name(accept_fifo_name, '\0');
 
     free(accept_fifo_name);
     free(old_id);

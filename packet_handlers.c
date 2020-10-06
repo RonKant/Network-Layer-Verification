@@ -7,7 +7,7 @@
 #include "network_manager/network_manager.h"
 
 TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
-
+    // printf("socket: %d.\n", (socket->id)->src_port);
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {
         socket->state = CLOSED;
         return NULL;
