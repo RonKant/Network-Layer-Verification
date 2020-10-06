@@ -163,7 +163,6 @@ Status SocketListen(SocketID sockid, int queueLimit) {
     char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(sockid);
 
     if (NULL == listen_fifo_read_end_name || NULL == listen_fifo_write_end_name) {
-        printf("1.\n");
         free(listen_fifo_write_end_name);
         free(listen_fifo_read_end_name);
         return MEMORY_ERROR;
@@ -171,15 +170,14 @@ Status SocketListen(SocketID sockid, int queueLimit) {
 
     if (0 != mkfifo(listen_fifo_write_end_name, DEFAULT_FIFO_MODE)
         || 0 != mkfifo(listen_fifo_read_end_name, DEFAULT_FIFO_MODE)) {
-            printf("2.\n");
             free(listen_fifo_write_end_name);
             free(listen_fifo_read_end_name);
             return MEMORY_ERROR;
         }
 
-    int listen_fifo_write_fd = open(listen_fifo_write_end_name, O_WRONLY);
-    if (-1 == listen_fifo_write_fd) {
-        printf("3.\n");
+
+    int listen_fifo_read_fd = open(listen_fifo_read_end_name, O_RDONLY);
+    if (-1 == listen_fifo_read_fd) {
         unlink(listen_fifo_read_end_name);
         unlink(listen_fifo_write_end_name);
         free(listen_fifo_write_end_name);
@@ -187,19 +185,20 @@ Status SocketListen(SocketID sockid, int queueLimit) {
         return MEMORY_ERROR;
     }
 
-    int listen_fifo_read_fd = open(listen_fifo_read_end_name, O_RDONLY | O_NONBLOCK);
-    if (-1 == listen_fifo_read_fd) {
-        printf("4.\n");
-        close(listen_fifo_write_fd);
+    int listen_fifo_write_fd;
+
+    listen_fifo_write_fd = open(listen_fifo_write_end_name, O_WRONLY);
+    if (-1 == listen_fifo_write_fd) {
+        close(listen_fifo_read_fd);
         unlink(listen_fifo_read_end_name);
         unlink(listen_fifo_write_end_name);
         free(listen_fifo_write_end_name);
         free(listen_fifo_read_end_name);
         return MEMORY_ERROR;
     }
+
     // // all fifos are open - send request and await answer.
     char message = (char)queueLimit;
-
     if (1 != write(listen_fifo_write_fd, &message, 1)) {
         close(listen_fifo_write_fd); close(listen_fifo_read_fd);
         unlink(listen_fifo_read_end_name); unlink(listen_fifo_write_end_name);

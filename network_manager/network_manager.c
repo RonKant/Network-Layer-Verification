@@ -475,7 +475,25 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         return 0;
     }
 
-    int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDWR);
+
+    char* listen_fifo_read_name = get_listen_fifo_read_end_name(sock_id);
+    if (NULL == listen_fifo_read_name) {
+        free(listen_fifo_write_name); 
+        free(accept_fifo_name);
+        return 0;
+    }
+
+    int listen_fifo_read_fd = open(listen_fifo_read_name, O_WRONLY | O_NONBLOCK);
+    if (listen_fifo_read_fd == -1) {
+        free(listen_fifo_write_name);
+        free(accept_fifo_name);
+        free(listen_fifo_read_name);
+        return 0;
+    }
+
+
+
+    int listen_fifo_write_fd = open(listen_fifo_write_name, O_RDONLY);
     if (-1 == listen_fifo_write_fd) {
         free(listen_fifo_write_name); free(accept_fifo_name);
         return 0;
@@ -486,6 +504,8 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     if (read_length == -1 || read_length == 0) {
         close(listen_fifo_write_fd);
         free(listen_fifo_write_name); free(accept_fifo_name);
+        close(listen_fifo_read_fd);
+        free(listen_fifo_read_name);
         return 0;
     }
 
@@ -510,6 +530,8 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         if (mkfifo(accept_fifo_name, DEFAULT_FIFO_MODE) != 0) {
             close(listen_fifo_write_fd);
             free(listen_fifo_write_name); free(accept_fifo_name);
+            close(listen_fifo_read_fd);
+            free(listen_fifo_read_name);
             reply = REQUEST_DENIED_FIFO;
             sock->state = CLOSED;
         }
@@ -519,8 +541,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
 
     // send reply to client fifo.
-    char* listen_fifo_read_name = get_listen_fifo_read_end_name(sock_id);
-    if (write_char_to_fifo_name(listen_fifo_read_name, reply) == -1) {
+    if (write(listen_fifo_read_fd, &reply, 1) != 1) {
         printf("Error: writing response %c to client on port %d failed.\n", reply, sock_id->src_port);
         if (reply == REQUEST_GRANTED_FIFO) {
             sock->state = CLOSED;
@@ -531,6 +552,7 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
 
     close(listen_fifo_write_fd);
     free(listen_fifo_write_name); 
+    close(listen_fifo_read_fd);
     free(listen_fifo_read_name);
 
     return 0;

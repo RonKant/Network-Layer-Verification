@@ -185,7 +185,7 @@ int write_char_to_fifo_name(char* fifo_name, char to_write) {
     if (NULL == fifo_name) {
         return -1;
     } else {
-        int fifo_fd = open(fifo_name, O_WRONLY);
+        int fifo_fd = open(fifo_name, O_RDWR);
         if (fifo_fd == -1) {
             return -1;
         } else if (write(fifo_fd, &to_write, sizeof(to_write)) == -1) {
