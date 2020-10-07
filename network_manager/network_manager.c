@@ -114,7 +114,7 @@ IPPacket read_ip_packet_from_file(int fd) {
 
 /**
  * Converts tcp packet to ip packet and sends it to it's given destination.
- * Returns 0 on success, -1 on error.
+ * Returns 0 on success, returns -2 if recepient not found, returns -1 on any other error. 
  */
 int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
     if (NULL == packet || NULL == manager || NULL == dst_ip) return -1;
@@ -144,11 +144,11 @@ int send_TCP_packet(TCPPacket packet, NetworkManager manager, char* dst_ip) {
 
     int dst_fifo_fd = open(dst_fifo_name, O_RDWR);
     if (-1 == dst_fifo_fd) {
-        printf("Error: destination ip: %s does not exist.\n", dst_ip);
+        // printf("Error: destination ip: %s does not exist.\n", dst_ip);
         free(dst_fifo_name);
         destroy_ip_packet(ip_packet);
         free(ip_str);
-        return -1;
+        return -2;
     }
 
     if (write(dst_fifo_fd, ip_str, strlen(ip_str)) == -1) {
@@ -975,8 +975,9 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
         if (DIFF2SEC(clock() - sock->time_since_fin_sent) > SOCKET_FIN_RST_TIME) {
             TCPPacket rst_packet = construct_packet(sock, "", RST, sock_id->dst_port);
             if (NULL != rst_packet) {
-                if (0 == send_TCP_packet(rst_packet, manager, sock_id->dst_ip)) {
+                if (-1 != send_TCP_packet(rst_packet, manager, sock_id->dst_ip)) {
                     sock->state = TIME_WAIT;
+                    destroy_tcp_packet(rst_packet);
                     return 0;
                 }
                 destroy_tcp_packet(rst_packet);
