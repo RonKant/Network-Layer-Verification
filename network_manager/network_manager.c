@@ -771,6 +771,7 @@ int check_and_handle_closed_socket(SocketID id_for_fifo, NetworkManager manager,
 int check_and_handle_close_command(SocketID id_for_fifo, NetworkManager manager,
     Socket socket_to_close) {
 
+
     char* end_fifo_write_name = get_end_fifo_write_end_name(id_for_fifo);
     if (NULL == end_fifo_write_name) return 0;
 
