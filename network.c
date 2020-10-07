@@ -575,7 +575,7 @@ int SocketSend(SocketID sockid, char* message) {
 
     if (NULL == sockid || NULL == message) return -1;
 
-    if (get_socket_state(sockid) != -1) {
+    if (get_socket_state(sockid) != CONNECTED_SOCKET) {
         printf("Socket must be connected before sending data.\n");
         return -1;
     }
@@ -583,7 +583,7 @@ int SocketSend(SocketID sockid, char* message) {
     char* send_fifo_name = get_socket_send_fifo_name(sockid);
     if (NULL == send_fifo_name) return -1;
 
-    int written = write_string_to_fifo_name(message, send_fifo_name, strlen(message));
+    int written = write_string_to_fifo_name(send_fifo_name, message, strlen(message));
 
     free(send_fifo_name);
     return written;
@@ -593,7 +593,7 @@ int SocketSend(SocketID sockid, char* message) {
 int SocketRecv(SocketID sockid, char* recvBuffer, int bufferLen) {
     if (NULL == sockid || NULL == recvBuffer || bufferLen <= 0) return -1;
 
-    if (get_socket_state(sockid) != -1) {
+    if (get_socket_state(sockid) != CONNECTED_SOCKET) {
         printf("Socket must be connected before receiving data.\n");
         return -1;
     }

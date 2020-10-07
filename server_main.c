@@ -36,7 +36,7 @@ int main() {
             } else {
                 printf("Received a new connection from (%s, %d)\n", new_connection->dst_ip, new_connection->dst_port);
                 
-                sleep(5);
+                sleep(100);
                 
                 if (SUCCESS != SocketClose(new_connection)) {
                     printf("Failed closing new connection socket.\n");

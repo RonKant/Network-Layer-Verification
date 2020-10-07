@@ -1,9 +1,31 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "network.h"
 #include "socket_utils.h"
+
+#define MAX_MESSAGE_LENGTH 100
+
+void chat(SocketID sock_id) {
+    char message[MAX_MESSAGE_LENGTH + 1];
+    printf("Start chatting.\n");
+
+    while (1) {
+        if (NULL != fgets(message, MAX_MESSAGE_LENGTH, stdin)) {
+            if (! strncmp("exit", message, 4)) {
+                printf("Done chatting.\n");
+                break;
+            }
+
+            if (-1 == SocketSend(sock_id, message)) {
+                printf("Error while sending data.\n");
+                break;
+            }
+        }
+    }
+}
 
 int main() {
     SocketID sock = SocketCreate();
@@ -38,8 +60,7 @@ int main() {
             printf("Failed connecting to remote address.\n");
         } else {
             printf("Connected succesfully.\n");
-
-            sleep(5);
+            chat(sock);
         }
 
         if (SUCCESS != SocketClose(sock)) {

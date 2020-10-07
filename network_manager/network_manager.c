@@ -921,14 +921,13 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
             if (QueueSize(sock->send_window) >= QueueCapacity(sock->send_window))
                 break;
 
-            int read_length = read(socket_send_fifo_fd, &read_byte, 1);
+            int read_length = read(socket_send_fifo_fd, read_byte, 1);
             if (read_length != 1) break;
 
             char* data_byte = (char*)malloc(sizeof(*data_byte));
             // we can't allow these bytes to get lost
             if (NULL == data_byte) {
-                data_byte = read_byte;
-                enqueue(sock->send_window, data_byte);
+                enqueue(sock->send_window, read_byte);
                 close(socket_send_fifo_fd);
                 return 0;
             } 

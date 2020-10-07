@@ -22,35 +22,32 @@ TCPPacket str_to_tcp(char* s) {
 	TCPPacket result = (TCPPacket)malloc(sizeof(*result));
 	if (NULL == result) return NULL;
 
-	int scanned;
-	if (strlen(s) > 41) {
-		scanned = sscanf(s, tcp_str_repr,
-			&(result->src_port),
-			&(result->dst_port),
-			&(result->seq_num),
-			&(result->ack_num),
-			&(result->flags),
-			&(result->checksum),
-			result->data
-		);
-	} else {
-		scanned = sscanf(s, tcp_str_repr_no_data,
-			&(result->src_port),
-			&(result->dst_port),
-			&(result->seq_num),
-			&(result->ack_num),
-			&(result->flags),
-			&(result->checksum)
-		);
-		result->data = NULL;
+	result->data = NULL;
+
+	int scanned = sscanf(s, tcp_str_repr_no_data,
+		&(result->src_port),
+		&(result->dst_port),
+		&(result->seq_num),
+		&(result->ack_num),
+		&(result->flags),
+		&(result->checksum)
+	);
+
+	if (scanned != 6) {
+		free(result);
+		return NULL;
 	}
 
-    if (scanned != 7) { // if scan failed -- error
-		if (scanned != 6 || strlen(s) != 41) { // could also be with no data.
+	if (strlen(s) > 41) {
+		int data_length = strlen(s) - 41;
+		result->data = (char*)malloc(data_length + 1);
+		if (result->data == NULL) {
 			free(result);
-        	return NULL;
+			return NULL;
 		}
-    }
+		memcpy(result->data, s + 41, data_length);
+		(result->data)[data_length] = '\0';
+	}
 
 	return result;
 }
