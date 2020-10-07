@@ -848,6 +848,7 @@ int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
         if (est_socket_data == NULL) est_socket_data = "";
 
         TCPPacket ack_packet = construct_packet(sock, est_socket_data, ACK, sock_id->dst_port);
+        printf("Trying to send packet with data:\n\t%s\n", est_socket_data);
         free(est_socket_data);
         if (NULL == ack_packet) return 0;
 
@@ -894,6 +895,49 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
             }
             destroy_tcp_packet(syn_ack_packet);
         }
+    } else if (sock->state == ESTABLISED) {
+
+        if (NULL == sock->send_window) {
+            printf("Invalid conected socket on port %d - %d: no send window.",
+                (sock->id)->src_port, (sock->id)->dst_port);
+            return 0;
+        }
+        // user can try to send things.
+        char* socket_send_fifo_name = get_socket_send_fifo_name(sock->id);
+        if (NULL == socket_send_fifo_name) return 0;
+
+        int socket_send_fifo_fd = open(socket_send_fifo_name, O_RDONLY | O_NONBLOCK);
+        free(socket_send_fifo_name);
+
+        if (-1 == socket_send_fifo_fd) return 0;
+
+        char* read_byte = (char*)malloc(sizeof(*read_byte));
+        if (NULL == read_byte) {
+            close(socket_send_fifo_fd);
+            return 0;
+        }
+
+        for (int i = 0; i < MAX_DATA_PER_PACKET; ++i) {
+            if (QueueSize(sock->send_window) >= QueueCapacity(sock->send_window))
+                break;
+
+            int read_length = read(socket_send_fifo_fd, &read_byte, 1);
+            if (read_length != 1) break;
+
+            char* data_byte = (char*)malloc(sizeof(*data_byte));
+            // we can't allow these bytes to get lost
+            if (NULL == data_byte) {
+                data_byte = read_byte;
+                enqueue(sock->send_window, data_byte);
+                close(socket_send_fifo_fd);
+                return 0;
+            } 
+
+            memcpy(data_byte, read_byte, 1);
+            enqueue(sock->send_window, data_byte);
+        }
+        close(socket_send_fifo_fd);
+        free(read_byte);
     }
     return 0;
 }
