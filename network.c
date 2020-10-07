@@ -440,7 +440,18 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
             char* send_fifo_name = get_socket_send_fifo_name(sockid);
             if (NULL == send_fifo_name) return MEMORY_ERROR;
 
-            if (0 != mkfifo(send_fifo_name, DEFAULT_FIFO_MODE)) {
+            char* recv_fifo_name = get_socket_recv_fifo_name(sockid);
+            if (NULL == recv_fifo_name) {
+                free(send_fifo_name);
+                return MEMORY_ERROR;
+            }
+
+            if (0 != mkfifo(send_fifo_name, DEFAULT_FIFO_MODE)
+                || 0 != mkfifo(recv_fifo_name, DEFAULT_FIFO_MODE)) {
+                unlink(send_fifo_name);
+                unlink(recv_fifo_name);
+
+                free(recv_fifo_name);
                 free(send_fifo_name);
                 ip_set_empty(sockid->dst_ip);
                 sockid->dst_port = EMPTY_PORT;
@@ -448,6 +459,7 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
                 return MEMORY_ERROR;
             }
             free(send_fifo_name);
+            free(recv_fifo_name);
 
         } else {
             return_value = REQUEST_DENIED;
@@ -532,6 +544,29 @@ SocketID SocketAccept(SocketID sockid) {
 
     strcpy(new_connection->dst_ip, ip);
     new_connection->dst_port = port;
+
+
+    char* send_fifo_name = get_socket_send_fifo_name(new_connection);
+    if (NULL == send_fifo_name) return ILLEGAL_SOCKET_ID;
+    char* recv_fifo_name = get_socket_recv_fifo_name(new_connection);
+    if (NULL == recv_fifo_name) {
+        free(send_fifo_name);
+        return ILLEGAL_SOCKET_ID;
+    }
+
+    if (0 != mkfifo(send_fifo_name, DEFAULT_FIFO_MODE)
+        || 0 != mkfifo(recv_fifo_name, DEFAULT_FIFO_MODE)) {
+        unlink(send_fifo_name);
+        unlink(recv_fifo_name);
+
+        free(recv_fifo_name);
+        free(send_fifo_name);
+        ip_set_empty(new_connection->dst_ip);
+        new_connection->dst_port = EMPTY_PORT;
+        return ILLEGAL_SOCKET_ID;
+    }
+    free(send_fifo_name);
+    free(recv_fifo_name);
 
     return new_connection;
 }

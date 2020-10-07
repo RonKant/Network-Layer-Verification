@@ -22,7 +22,7 @@ void unlink_socket_fifos_server_side(Socket sock) {
 
     if (NULL == end_fifo_write_name
         || 0 != unlink(end_fifo_write_name)) {
-        printf("Failed unlinking end fifo write end of socket (delete manually).\n");
+        printf("\tFailed unlinking end fifo write end of socket (delete manually).\n");
     }
 
     free(end_fifo_write_name);
@@ -30,7 +30,7 @@ void unlink_socket_fifos_server_side(Socket sock) {
     char* accept_fifo_name = get_accept_fifo_write_end_name(sock->id);
     if (NULL == accept_fifo_name
         || 0 != unlink(accept_fifo_name)) {
-        printf("Failed unlinking accept fifo of socket (delete manually).\n");
+        printf("\tFailed unlinking accept fifo of socket (delete manually).\n");
     }
 
     free(accept_fifo_name);
@@ -38,10 +38,18 @@ void unlink_socket_fifos_server_side(Socket sock) {
     char* send_fifo_name = get_socket_send_fifo_name(sock->id);
     if (NULL == send_fifo_name
         || 0 != unlink(send_fifo_name)) {
-        printf("Failed unlinking send fifo of socket (delete manually).\n");
+        printf("\tFailed unlinking send fifo of socket (delete manually).\n");
     }
 
     free(send_fifo_name);
+
+    char* recv_fifo_name = get_socket_recv_fifo_name(sock->id);
+    if (NULL == recv_fifo_name
+        || 0 != unlink(recv_fifo_name)) {
+        printf("\tFailed unlinking recv fifo of socket (delete manually).\n");
+    }
+
+    free(recv_fifo_name);
 }
 
 IPPacket read_ip_packet_from_file(int fd) {

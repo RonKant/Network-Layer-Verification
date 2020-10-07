@@ -228,8 +228,8 @@ void unlink_socket_fifos(Socket socket) {
 	char* listen_fifo_read_end_name = get_listen_fifo_read_end_name(socket->id);
 	char* listen_fifo_write_end_name = get_listen_fifo_write_end_name(socket->id);
 	char* accept_fifo_write_end_name = get_accept_fifo_write_end_name(socket->id);
-	char* out_fifo_read_end_name = get_out_fifo_read_end_name(socket->id);
-	char* in_fifo_write_end_name = get_in_fifo_write_end_name(socket->id);
+	char* out_fifo_read_end_name = get_socket_send_fifo_name(socket->id);
+	char* in_fifo_write_end_name = get_socket_recv_fifo_name(socket->id);
 	char* end_fifo_read_end_name = get_end_fifo_read_end_name(socket->id);
 	char* end_fifo_write_end_name = get_end_fifo_write_end_name(socket->id);
 
