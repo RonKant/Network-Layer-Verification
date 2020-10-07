@@ -571,7 +571,7 @@ SocketID SocketAccept(SocketID sockid) {
     return new_connection;
 }
 
-int SocketSend(SocketID sockid, char* message) {
+int SocketSend(SocketID sockid, char* message, int len) {
 
     if (NULL == sockid || NULL == message) return -1;
 
@@ -583,7 +583,7 @@ int SocketSend(SocketID sockid, char* message) {
     char* send_fifo_name = get_socket_send_fifo_name(sockid);
     if (NULL == send_fifo_name) return -1;
 
-    int written = write_string_to_fifo_name(send_fifo_name, message, strlen(message));
+    int written = write_string_to_fifo_name(send_fifo_name, message, len);
 
     free(send_fifo_name);
     return written;

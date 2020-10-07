@@ -19,6 +19,7 @@ void chat(SocketID sock_id) {
             printf("Error while receiving data.\n");
             break;
         }
+        recv_buffer[received_length] = '\0';
 
         printf("Message:\n\tLength: %ld.\n\t%s\n", strlen(recv_buffer), recv_buffer);
     }
@@ -55,7 +56,7 @@ int main() {
             } else {
                 printf("Received a new connection from (%s, %d)\n", new_connection->dst_ip, new_connection->dst_port);
                 
-                chat(sock);
+                chat(new_connection);
                 
                 if (SUCCESS != SocketClose(new_connection)) {
                     printf("Failed closing new connection socket.\n");

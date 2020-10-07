@@ -91,10 +91,10 @@ Status SocketConnect(SocketID sockid, Address foreignAddr);
 SocketID SocketAccept(SocketID sockid);
 
 /*
- * Sends a message to the socket at the other end of an existing connection.
+ * Sends a message of length len to the socket at the other end of an existing connection.
  * Returns the number of bytes transmitted (-1 on failure).
  */
-int SocketSend(SocketID sockid, char* message);
+int SocketSend(SocketID sockid, char* message, int len);
 
 /*
  * Waits for receiving data from the other end of an existing connection.

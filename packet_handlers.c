@@ -192,10 +192,12 @@ TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_i
     }
 
     if (packet->data != NULL) {
+        printf("Packet data: %s.\n", packet->data);
         receiveNewData(socket, packet);
+        return(construct_packet(socket, "", ACK, packet->src_port));
+    } else {
+        return NULL;
     }
-
-    return(construct_packet(socket, "", ACK, packet->src_port));
 }
 
 TCPPacket handle_packet_close_wait(Socket socket, TCPPacket packet, char* src_ip) {return NULL;} // ignore all messages

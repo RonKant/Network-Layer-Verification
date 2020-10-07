@@ -1040,7 +1040,6 @@ int managerLoop(NetworkManager manager) {
             return -1;
         }
         // go over connect requests fifo, handle them
-
         if (handle_in_packets_fifo(manager) != 0) {
             return -1;
         }

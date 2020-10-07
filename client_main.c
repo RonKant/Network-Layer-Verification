@@ -14,7 +14,12 @@ void chat(SocketID sock_id) {
 
     while (1) {
         if (NULL != fgets(message, MAX_MESSAGE_LENGTH, stdin)) {
-            if (-1 == SocketSend(sock_id, message)) {
+
+            if (message[strlen(message) - 1] == '\n') {
+                message[strlen(message) - 1] = '\0';
+            }
+
+            if (-1 == SocketSend(sock_id, message, strlen(message))) {
                 printf("Error while sending data.\n");
                 break;
             }
