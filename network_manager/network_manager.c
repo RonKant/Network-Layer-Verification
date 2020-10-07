@@ -807,7 +807,9 @@ int check_and_handle_close_command(SocketID id_for_fifo, NetworkManager manager,
             (socket_to_close->id)->dst_port = EMPTY_PORT;
         }
         
-        socket_to_close->state = CLOSED;
+        socket_to_close->seq_of_first_send_window += QueueSize(socket_to_close->send_window);
+        socket_to_close->state = FIN_WAIT_1;
+        socket_to_close->time_since_fin_sent = clock();
     }
 
     close(end_fifo_write_fd);
@@ -969,6 +971,54 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
         }
         close(socket_send_fifo_fd);
         free(read_byte);
+    } else if (sock->state == FIN_WAIT_1) {
+        if (DIFF2SEC(clock() - sock->time_since_fin_sent) > SOCKET_FIN_RST_TIME) {
+            TCPPacket rst_packet = construct_packet(sock, "", RST, sock_id->dst_port);
+            if (NULL != rst_packet) {
+                if (0 == send_TCP_packet(rst_packet, manager, sock_id->dst_ip)) {
+                    sock->state = TIME_WAIT;
+                    return 0;
+                }
+                destroy_tcp_packet(rst_packet);
+            }
+        }
+        if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
+            TCPPacket fin_packet = construct_packet(sock, "", FIN, sock_id->dst_port);
+            if (NULL == fin_packet) return 0;
+
+            if (0 == send_TCP_packet(fin_packet, manager, sock_id->dst_ip)) {
+                sock->last_send_clock = clock();
+            }
+            destroy_tcp_packet(fin_packet);
+        }
+    } else if (sock->state == CLOSE_WAIT) {
+        sock->seq_of_first_send_window += QueueSize(sock->send_window);
+        sock->state = LAST_ACK;
+    } else if (sock->state == CLOSING) {
+        if (DIFF2SEC(clock() - sock->time_since_fin_sent) > SOCKET_FIN_RST_TIME) {
+            TCPPacket rst_packet = construct_packet(sock, "", RST, sock_id->dst_port);
+            if (NULL != rst_packet) {
+                if (0 == send_TCP_packet(rst_packet, manager, sock_id->dst_ip)) {
+                    sock->state = TIME_WAIT;
+                    return 0;
+                }
+                destroy_tcp_packet(rst_packet);
+            }
+        }
+    } else if (sock->state == LAST_ACK) {
+        if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
+            TCPPacket fin_packet = construct_packet(sock, "", FIN | ACK, sock_id->dst_port);
+            if (NULL == fin_packet) return 0;
+
+            if (0 == send_TCP_packet(fin_packet, manager, sock_id->dst_ip)) {
+                sock->last_send_clock = clock();
+            }
+            destroy_tcp_packet(fin_packet);
+        }
+    } else if (sock->state == TIME_WAIT) {
+        if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_TIME_WAIT_TIMEOUT) {
+            sock->state = CLOSED;
+        }
     }
     return 0;
 }

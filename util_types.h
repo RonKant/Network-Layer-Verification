@@ -117,6 +117,7 @@ typedef struct {
 
 	clock_t last_send_clock;
     clock_t creation_time;
+    clock_t time_since_fin_sent;
 
 } * Socket;
 

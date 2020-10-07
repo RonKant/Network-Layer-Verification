@@ -178,7 +178,10 @@ TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_i
     if (packet->flags & SYN) return NULL;
 
     if (packet->flags & FIN) {
-        // TODO
+        socket->state = CLOSE_WAIT;
+        socket->seq_of_first_recv_window = packet->seq_num + 1;
+        socket->seq_of_first_send_window += QueueSize(socket->send_window);
+        return NULL;
     }
 
     if (packet->flags & ACK) {
@@ -202,68 +205,56 @@ TCPPacket handle_packet_close_wait(Socket socket, TCPPacket packet, char* src_ip
 
 
 TCPPacket handle_packet_last_ack(Socket socket, TCPPacket packet, char* src_ip) {
-    // if (!(packet->flags & ACK)) {return generate_rst_packet(socket);}
+    if (!(packet->flags & ACK)) {return NULL;}
 
-    // if (packet->ack_num <= socket->seq_of_first_send_window) { return generate_rst_packet(socket);} // ack should match the fin seq sent
+    if (packet->ack_num <= socket->seq_of_first_send_window) { return NULL;} // ack should match the fin seq sent
 
-    // socket->state = CLOSED;
+    socket->state = CLOSED;
     return NULL;
 }
 
 TCPPacket handle_packet_fin_wait_1(Socket socket, TCPPacket packet, char* src_ip) {
-    // bool received_ack_for_own_fin = false;
-    // if ((packet->flags & ACK) && (packet->ack_num > socket->seq_of_first_send_window)) {
-    //     socket->state = FIN_WAIT_2; // wait for receiving FIN, next - check if current packet also has a fin.
-    //     received_ack_for_own_fin = true;
-    // }
 
-    // if (packet->flags & FIN) { // acknowledge the fin
-    //     TCPPacket ack_for_fin = construct_ack_packet(socket);
-    //     if (ack_for_fin == NULL) { // error
-    //         close_socket(socket);
-    //         return generate_rst_packet(socket);
-    //     } else {
-    //         ack_for_fin->ack_num = packet->seq_num + 1;
-    //         ack_for_fin->checksum = calc_checksum(socket, ack_for_fin);
-    //     }
+    bool received_ack_fow_own_fin = false;
+    if (packet->flags & ACK) {
+        if (packet->ack_num > socket->seq_of_first_send_window) {
+            received_ack_fow_own_fin = true;
+            socket->state = FIN_WAIT_2;
+        }
+    }
 
-    //     if (received_ack_for_own_fin) {
-    //         socket->state = TIME_WAIT; // received both ack for own fin and second fin -> finish
-    //     } else {
-    //         socket->state = CLOSING; // have yet to receive it's own fin ack
-    //     }
-    //     return ack_for_fin;
-    // }
+    if (packet->flags & FIN) {
+        socket->seq_of_first_recv_window = packet->seq_num + 1;
+        socket->state = CLOSING;
+        socket->time_since_fin_sent = clock();
+
+        if (received_ack_fow_own_fin) {
+            socket->last_send_clock = clock();
+            socket->state = TIME_WAIT;
+        }
+    }
     
     return NULL;
 }
 
 TCPPacket handle_packet_fin_wait_2(Socket socket, TCPPacket packet, char* src_ip) {
-    // if (packet->flags & FIN) { // acknowledge the fin
-    //     TCPPacket ack_for_fin = construct_ack_packet(socket);
-    //     if (ack_for_fin == NULL) { // error
-    //         close_socket(socket);
-    //         return generate_rst_packet(socket);
-    //     } else {
-    //         ack_for_fin->ack_num = packet->seq_num + 1;
-    //         ack_for_fin->checksum = calc_checksum(socket, ack_for_fin);
-    //     }
+    if (packet->flags & FIN) {
+        socket->state = TIME_WAIT;
+        socket->seq_of_first_recv_window = packet->seq_num + 1;
 
-    //     socket->state = TIME_WAIT; // received both ack for own fin and second fin -> finish
-    //     return ack_for_fin;
-    // } else {
-    //     return NULL;
-    // }
+
+        return construct_packet(socket, "", ACK, packet->src_port);
+    }
 
     return NULL;
 }
 TCPPacket handle_packet_closing(Socket socket, TCPPacket packet, char* src_ip) {
-    // if ((packet->flags & ACK) && (packet->ack_num > socket->seq_of_first_send_window)) {
-    //     socket->state = TIME_WAIT;
-    //     return NULL;
-    // } else {
-    //     return generate_rst_packet(socket);
-    // }
+    if (packet->flags & ACK) {
+        if (packet->ack_num > socket->seq_of_first_send_window) {
+            socket->last_send_clock = clock();
+            socket->state = TIME_WAIT;
+        }
+    }
     return NULL;
 }
 TCPPacket handle_packet_time_wait(Socket socket, TCPPacket packet, char* src_ip) { return NULL; } // ignore all messages
