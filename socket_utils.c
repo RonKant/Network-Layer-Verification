@@ -141,7 +141,6 @@ Socket create_new_socket(){
 	s->recv_window_isvalid = NULL;
 
     s->max_recv_window_size = MAX_WINDOW_SIZE;
-    s->recv_window_size = s->max_recv_window_size; // redundant
 
 	s->connections = NULL;
 
@@ -246,7 +245,6 @@ void* copy_socket(void* to_copy) {
     s->end_fifo_write_end = to_copy_socket->end_fifo_write_end;
 
     s->seq_of_first_send_window = to_copy_socket->seq_of_first_send_window;
-    s->recv_window_size = to_copy_socket->recv_window_size;
     s->max_recv_window_size = to_copy_socket->max_recv_window_size;
     s->seq_of_first_recv_window = to_copy_socket->seq_of_first_recv_window;
 
@@ -259,4 +257,31 @@ void destroy_socket_id(SocketID sock_id) {
     if (sock_id == NULL) return;
 
     free(sock_id);
+}
+
+
+void update_recv_window(Socket socket) {
+    int valid_recvs = 0;
+    for (; valid_recvs < socket->max_recv_window_size; ++valid_recvs) {
+        if ((socket->recv_window_isvalid)[valid_recvs] == false) break;
+    }
+
+    char* socket_recv_fifo_name = get_socket_recv_fifo_name(socket->id);
+    if (NULL == socket_recv_fifo_name) return;
+
+    int bytes_written_to_user = write_string_to_fifo_name(
+        socket_recv_fifo_name, socket->recv_window, valid_recvs
+    );
+
+    if (bytes_written_to_user == -1) return;
+
+    socket->seq_of_first_recv_window += bytes_written_to_user;
+    for (int i = 0; i < socket->max_recv_window_size - bytes_written_to_user; ++i) {
+        (socket->recv_window)[i] = (socket->recv_window)[i + bytes_written_to_user];
+        (socket->recv_window_isvalid)[i] = (socket->recv_window_isvalid)[i + bytes_written_to_user];
+    }
+
+    for (int i = socket->max_recv_window_size - bytes_written_to_user; i < socket->max_recv_window_size; ++i) {
+        (socket->recv_window_isvalid)[i] = false;
+    }
 }

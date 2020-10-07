@@ -58,4 +58,10 @@ void destroy_socket_fifos(Socket socket);
 
 void destroy_socket_id(SocketID sock_id); // also frees ip strings
 
+/**
+ * Moves the receive window back by amount of received sequence of bytes.
+ * Transfers said bytes to user fifo.
+ */
+void update_recv_window(Socket socket);
+
 #endif

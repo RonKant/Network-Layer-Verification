@@ -108,7 +108,6 @@ typedef struct {
      * a continuous sequence of bytes may leave this array from it's "left end" after acknowledge was sent for them.
      */
     char* recv_window; // contains non-continuous byte sequence received.
-    int recv_window_size;
     int max_recv_window_size;
     int seq_of_first_recv_window; // seq number of first byte in recv_window - seq number of next byte to receive;
     bool* recv_window_isvalid; // each index indicates whether the corresponding byte has been received;

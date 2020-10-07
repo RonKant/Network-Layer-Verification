@@ -160,40 +160,42 @@ TCPPacket handle_packet_syn_received(Socket socket, TCPPacket packet, char* src_
 /**
  * inserts data from accepted data packet into an ESTABLISHED socket recv_window
  */
-// void receiveNewData(Socket socket, TCPPacket packet) {
-//     for (int i = 0; i < strlen(packet->data); ++i) { // take only missing bytes into receive window
-//                 int current_byte_seq = packet->seq_num + i;
-//                 int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
-//                 if (place_in_window >= 0 && place_in_window <= socket->recv_window_size) {
-//                     if ((socket->recv_window_isvalid)[place_in_window] == false) {
-//                         (socket->recv_window)[place_in_window] = (packet->data)[i];
-//                         (socket->recv_window_isvalid)[place_in_window] = true;
-//                     }
-//                 }
-//             }
+void receiveNewData(Socket socket, TCPPacket packet) {
+    for (int i = 0; i < strlen(packet->data); ++i) { // take only missing bytes into receive window
+                int current_byte_seq = packet->seq_num + i;
+                int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
+                if (place_in_window >= 0 && place_in_window < socket->max_recv_window_size) {
+                    if ((socket->recv_window_isvalid)[place_in_window] == false) {
+                        (socket->recv_window)[place_in_window] = (packet->data)[i];
+                        (socket->recv_window_isvalid)[place_in_window] = true;
+                    }
+                }
+            }
 
-//     update_recv_window(socket);
-// }
+    update_recv_window(socket);
+}
 
 TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_ip) {
-    // if (packet->flags & FIN) {
-    //     TCPPacket ack_for_fin = construct_ack_packet(socket);
-    //     if (ack_for_fin == NULL) { // error
-    //         close_socket(socket);
-    //         return generate_rst_packet(socket);
-    //     } else {
-    //         ack_for_fin->ack_num = packet->seq_num + 1;
-    //         ack_for_fin->checksum = calc_checksum(socket, ack_for_fin);
-    //         socket->state = CLOSE_WAIT;
-    //         return ack_for_fin;
-    //     }
-    // } else {
-    //     receiveNewData(socket, packet);
-    //     send_ack(socket);
-    //     return NULL;
-    //     // state stays ESTABLISHED
-    // }
-    return NULL;
+    if (packet->flags & SYN) return NULL;
+
+    if (packet->flags & FIN) {
+        // TODO
+    }
+
+    if (packet->flags & ACK) {
+        int packet_ack_num = packet->ack_num;
+        while(socket->seq_of_first_send_window < packet_ack_num
+             && false == QueueIsEmpty(socket->send_window)) {
+                free(dequeue(socket->send_window));
+                socket->seq_of_first_send_window++;
+        }
+    }
+
+    if (packet->data != NULL) {
+        receiveNewData(socket, packet);
+    }
+
+    return(construct_packet(socket, "", ACK, packet->src_port));
 }
 
 TCPPacket handle_packet_close_wait(Socket socket, TCPPacket packet, char* src_ip) {return NULL;} // ignore all messages
