@@ -125,11 +125,7 @@ char* get_connect_fifo_write_end_name(SocketID sock_id) {
 
 }
 
-char* get_out_fifo_read_end_name(SocketID sock_id) {
-    return construct_full_socket_fifo_name(OUT_DATA_SOCKET_FIFO_PREFIX, sock_id);
-}
-
-char* get_in_fifo_write_end_name(SocketID sock_id) {
+char* get_socket_recv_fifo_name(SocketID sock_id) {
     return construct_full_socket_fifo_name(IN_DATA_SOCKET_FIFO_PREFIX, sock_id);
 }
 
@@ -139,6 +135,10 @@ char* get_end_fifo_read_end_name(SocketID sock_id) {
 
 char* get_end_fifo_write_end_name(SocketID sock_id) {
     return construct_full_socket_fifo_name(END_SOCKET_WRITE_FIFO_PREFIX, sock_id);
+}
+
+char* get_socket_send_fifo_name(SocketID sock_id) {
+    return construct_full_socket_fifo_name(OUT_DATA_SOCKET_FIFO_PREFIX, sock_id);
 }
 
 /**
@@ -201,15 +201,14 @@ int write_string_to_fifo_name(char* fifo_name, const char* to_write, int len) {
     if (NULL == fifo_name)
         return -1;
     else {
-        int fifo_fd = open(fifo_name, O_WRONLY);
+        int fifo_fd = open(fifo_name, O_RDWR);
         if (fifo_fd == -1)
             return -1;
-        else if (write(fifo_fd, to_write, len) < len) {
+        else {
+            int written = write(fifo_fd, to_write, len);
             close(fifo_fd);
-            return -1;
-        }
-        close(fifo_fd);
-        return len;
+            return written;
+        } 
     }
 }
 

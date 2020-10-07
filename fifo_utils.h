@@ -91,13 +91,13 @@ char* get_connect_fifo_read_end_name(SocketID sock_id);
 
 char* get_connect_fifo_write_end_name(SocketID sock_id);
 
-char* get_out_fifo_read_end_name(SocketID sock_id);
-
-char* get_in_fifo_write_end_name(SocketID sock_id);
-
 char* get_end_fifo_read_end_name(SocketID sock_id);
 
 char* get_end_fifo_write_end_name(SocketID sock_id);
+
+char* get_socket_send_fifo_name(SocketID sock_id);
+
+char* get_socket_recv_fifo_name(SocketID sock_id);
 
 /**
  * Allocates and returns a string representation of a BOUND ONLY socket.

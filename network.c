@@ -436,6 +436,19 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
             return_value = SUCCESS;
             strcpy(sockid->dst_ip, foreignAddr->addr);
             sockid->dst_port = foreignAddr->port;
+
+            char* send_fifo_name = get_socket_send_fifo_name(sockid);
+            if (NULL == send_fifo_name) return MEMORY_ERROR;
+
+            if (0 != mkfifo(send_fifo_name, DEFAULT_FIFO_MODE)) {
+                free(send_fifo_name);
+                ip_set_empty(sockid->dst_ip);
+                sockid->dst_port = EMPTY_PORT;
+                create_socket_end_fifos(sockid);
+                return MEMORY_ERROR;
+            }
+            free(send_fifo_name);
+
         } else {
             return_value = REQUEST_DENIED;
         }
@@ -523,7 +536,53 @@ SocketID SocketAccept(SocketID sockid) {
     return new_connection;
 }
 
-int SocketSend(SocketID sockid, char* message);
+int SocketSend(SocketID sockid, char* message) {
+
+    if (NULL == sockid || NULL == message) return -1;
+
+    if (get_socket_state(sockid) != -1) {
+        printf("Socket must be connected before sending data.\n");
+        return -1;
+    }
+
+    char* send_fifo_name = get_socket_send_fifo_name(sockid);
+    if (NULL == send_fifo_name) return -1;
+
+    int written = write_string_to_fifo_name(message, send_fifo_name, strlen(message));
+
+    free(send_fifo_name);
+    return written;
+}
 
 
-int SocketRecv(SocketID sockid, char* recvBuffer, int bufferLen);
+int SocketRecv(SocketID sockid, char* recvBuffer, int bufferLen) {
+    if (NULL == sockid || NULL == recvBuffer || bufferLen <= 0) return -1;
+
+    if (get_socket_state(sockid) != -1) {
+        printf("Socket must be connected before receiving data.\n");
+        return -1;
+    }
+
+    char* recv_fifo_name = get_socket_recv_fifo_name(sockid);
+    if (NULL == recv_fifo_name) return -1;
+
+    int recv_fifo_fd = open(recv_fifo_name, O_RDONLY);
+    if (-1 == recv_fifo_fd) {
+        free(recv_fifo_name);
+        return -1;
+    }
+
+    free(recv_fifo_name);
+
+    int read_length = 0;
+    while (0 == read_length) {
+        read_length = read(recv_fifo_fd, recvBuffer, bufferLen);
+        if (-1 == read_length) {
+            close(recv_fifo_fd);
+            return -1;
+        }
+    }
+
+    close(recv_fifo_fd);
+    return read_length;
+}

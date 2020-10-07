@@ -34,6 +34,14 @@ void unlink_socket_fifos_server_side(Socket sock) {
     }
 
     free(accept_fifo_name);
+
+    char* send_fifo_name = get_socket_send_fifo_name(sock->id);
+    if (NULL == send_fifo_name
+        || 0 != unlink(send_fifo_name)) {
+        printf("Failed unlinking send fifo of socket (delete manually).\n");
+    }
+
+    free(send_fifo_name);
 }
 
 IPPacket read_ip_packet_from_file(int fd) {
