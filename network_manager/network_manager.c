@@ -364,10 +364,33 @@ int terminate_manager(NetworkManager manager) {
         return -1;
     }
 
-    // HASH_MAP_FOREACH(sock_id, manager->sockets) {
-    //     // send termination signal to socket.
-    //     // unlink socket fifos. TODO
-    // }
+    HASH_MAP_FOREACH(sock_id, manager->sockets) {
+
+        char* end_fifo_read_name = get_end_fifo_read_end_name(sock_id);
+        if (NULL != end_fifo_read_name) {
+            
+            int end_fifo_read_fd = open(end_fifo_read_name, O_RDWR);
+
+            if (-1 != end_fifo_read_fd) {
+
+                if (write(end_fifo_read_fd, "E", 1) == 1) {
+                    printf("Failed to notify active user about socket closing.\n");
+                }
+
+                close(end_fifo_read_fd);
+            }
+
+            free(end_fifo_read_name);
+        }
+
+        printf("Removing socket on port %d.\n", sock_id->src_port);
+
+        Socket sock = getSocket(manager->sockets, sock_id);
+        if (NULL != sock) {
+            unlink_socket_fifos_server_side(sock, manager);
+        }
+
+    }
 
     //unlink_and_clean_manager(manager);
 

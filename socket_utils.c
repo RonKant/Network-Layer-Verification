@@ -107,7 +107,7 @@ bool compare_socket(void* s1, void* s2) {
  */
 void destroy_socket(void* socket) {
     Socket socket_to_destroy = (Socket) socket;
-    if (socket_to_destroy->send_window != NULL) QueueDestroy(socket_to_destroy->send_window,NULL);
+    if (socket_to_destroy->send_window != NULL) QueueDestroy(socket_to_destroy->send_window,free);
     if (socket_to_destroy->recv_window != NULL) free(socket_to_destroy->recv_window);
     if (socket_to_destroy->recv_window_isvalid != NULL) free(socket_to_destroy->recv_window_isvalid);
     if (socket_to_destroy->connections != NULL)  QueueDestroy(socket_to_destroy->connections,NULL);
