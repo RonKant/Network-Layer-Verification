@@ -21,7 +21,7 @@ void chat(SocketID sock_id) {
         }
         recv_buffer[received_length] = '\0';
 
-        printf("Message:\n\tLength: %ld.\n\t%s\n", strlen(recv_buffer), recv_buffer);
+        printf("Message: %s\n", recv_buffer);
     }
 }
 

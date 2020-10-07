@@ -601,26 +601,42 @@ int SocketRecv(SocketID sockid, char* recvBuffer, int bufferLen) {
         return -1;
     }
 
-    char* recv_fifo_name = get_socket_recv_fifo_name(sockid);
-    if (NULL == recv_fifo_name) return -1;
 
-    int recv_fifo_fd = open(recv_fifo_name, O_RDONLY);
-    if (-1 == recv_fifo_fd) {
-        free(recv_fifo_name);
-        return -1;
-    }
-
-    free(recv_fifo_name);
-
+    int recv_fifo_fd = -1;
     int read_length = 0;
     while (0 == read_length) {
+        char* recv_fifo_name = get_socket_recv_fifo_name(sockid);
+        if (NULL == recv_fifo_name) return -1;
+
+        recv_fifo_fd = open(recv_fifo_name, O_RDONLY);
+        if (-1 == recv_fifo_fd) {
+            free(recv_fifo_name);
+            return -1;
+        }
+
+        free(recv_fifo_name);
+
         read_length = read(recv_fifo_fd, recvBuffer, bufferLen);
+
+        close(recv_fifo_fd);
         if (-1 == read_length) {
-            close(recv_fifo_fd);
+            if (EAGAIN == errno) {
+                read_length = 0;
+                continue;
+            }
+            return -1;
+        }
+
+        // printf("--------\n");
+        // for (int i = 0; i < read_length; ++i) {
+        //     printf("%d ", recvBuffer[i]);
+        // }
+        // printf("\n");
+
+        if (recvBuffer[read_length - 1] == CONN_CLOSED) {
+            printf("Connection was forcibly closed on the other side.\n");
             return -1;
         }
     }
-
-    close(recv_fifo_fd);
     return read_length;
 }

@@ -17,7 +17,7 @@
 
 #define BREAK_ITERATION 2
 
-void unlink_socket_fifos_server_side(Socket sock) {
+void unlink_socket_fifos_server_side(Socket sock, NetworkManager manager) {
     char* end_fifo_write_name = get_end_fifo_write_end_name(sock->id);
 
     if (NULL == end_fifo_write_name
@@ -44,12 +44,39 @@ void unlink_socket_fifos_server_side(Socket sock) {
     free(send_fifo_name);
 
     char* recv_fifo_name = get_socket_recv_fifo_name(sock->id);
+
     if (NULL == recv_fifo_name
         || 0 != unlink(recv_fifo_name)) {
         printf("\tFailed unlinking recv fifo of socket (delete manually).\n");
     }
 
     free(recv_fifo_name);
+
+    // disconnect partner - may be stuck in recv
+    if (sock->seq_of_first_send_window != 0) {
+        SocketID partner_id = copy_socket_id(sock->id);
+        if (NULL != partner_id) {
+            strcpy(partner_id->src_ip, (sock->id)->dst_ip);
+            partner_id->src_port = (sock->id)->dst_port;
+            strcpy(partner_id->dst_ip, (sock->id)->src_ip);
+            partner_id->dst_port = (sock->id)->src_port;
+
+
+            char* partner_recv_fifo_name = get_socket_recv_fifo_name(partner_id);
+            if (NULL != partner_recv_fifo_name) {
+                char conn_closed = CONN_CLOSED;
+                int recv_fifo_fd = open(partner_recv_fifo_name, O_RDWR);
+                if (-1 != recv_fifo_fd) {
+                    write(recv_fifo_fd, &conn_closed, 1);
+                    close(recv_fifo_fd);
+                }
+                free(partner_recv_fifo_name);
+            }
+            destroy_socket_id(partner_id);
+        }
+    }
+
+
 }
 
 IPPacket read_ip_packet_from_file(int fd) {
@@ -354,7 +381,7 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
     }
 
     hashmapRemove(manager->sockets, sock_id, NULL);
-    unlink_socket_fifos_server_side(to_remove);
+    unlink_socket_fifos_server_side(to_remove, manager);
     destroy_socket(to_remove);
 }
 
@@ -848,7 +875,7 @@ int check_and_handle_send_window(SocketID sock_id, NetworkManager manager) {
         if (est_socket_data == NULL) est_socket_data = "";
 
         TCPPacket ack_packet = construct_packet(sock, est_socket_data, ACK, sock_id->dst_port);
-        printf("Trying to send packet with data:\n\t%s\n", est_socket_data);
+        // printf("Trying to send packet with data:\n\t%s\n", est_socket_data);
         free(est_socket_data);
         if (NULL == ack_packet) return 0;
 

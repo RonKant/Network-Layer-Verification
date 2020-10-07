@@ -20,6 +20,7 @@
 
 #define REQUEST_GRANTED_FIFO 'K'
 #define REQUEST_DENIED_FIFO 'N'
+#define CONN_CLOSED 1
 
 #define FIFO_FOLDER_PATH_PREFIX "/tmp/vnetwork_fifos/"
 

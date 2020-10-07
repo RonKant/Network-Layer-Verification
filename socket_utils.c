@@ -148,6 +148,10 @@ Socket create_new_socket(){
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
+    for (int i = 0; i < s->max_recv_window_size; ++i) {
+        (s->recv_window_isvalid)[i] = false;
+    }
+
     s->seq_of_first_recv_window = 0;
     s->seq_of_first_send_window = 0;
 
@@ -272,6 +276,8 @@ void update_recv_window(Socket socket) {
     int bytes_written_to_user = write_string_to_fifo_name(
         socket_recv_fifo_name, socket->recv_window, valid_recvs
     );
+
+    free(socket_recv_fifo_name);
 
     if (bytes_written_to_user == -1) return;
 
