@@ -1,9 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "network.h"
 #include "socket_utils.h"
+
+#define RECV_BUFFER_LENGTH 100
+
+void chat(SocketID sock_id) {
+    char recv_buffer[RECV_BUFFER_LENGTH + 1];
+    printf("Start chatting.\n");
+
+    int received_length;
+    while(1) {
+        received_length = SocketRecv(sock_id, recv_buffer, RECV_BUFFER_LENGTH);
+        if (-1 == received_length) {
+            printf("Error while receiving data.\n");
+            break;
+        }
+
+        printf("Message:\n\tLength: %ld.\n\t%s\n", strlen(recv_buffer), recv_buffer);
+    }
+}
 
 int main() {
     SocketID sock = SocketCreate();
@@ -36,7 +55,7 @@ int main() {
             } else {
                 printf("Received a new connection from (%s, %d)\n", new_connection->dst_ip, new_connection->dst_port);
                 
-                sleep(100);
+                chat(sock);
                 
                 if (SUCCESS != SocketClose(new_connection)) {
                     printf("Failed closing new connection socket.\n");

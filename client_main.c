@@ -14,13 +14,13 @@ void chat(SocketID sock_id) {
 
     while (1) {
         if (NULL != fgets(message, MAX_MESSAGE_LENGTH, stdin)) {
-            if (! strncmp("exit", message, 4)) {
-                printf("Done chatting.\n");
+            if (-1 == SocketSend(sock_id, message)) {
+                printf("Error while sending data.\n");
                 break;
             }
 
-            if (-1 == SocketSend(sock_id, message)) {
-                printf("Error while sending data.\n");
+            if (! strcmp("exit", message)) {
+                printf("Done chatting.\n");
                 break;
             }
         }
