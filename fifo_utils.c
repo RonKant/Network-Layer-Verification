@@ -201,7 +201,7 @@ int write_string_to_fifo_name(char* fifo_name, const char* to_write, int len) {
     if (NULL == fifo_name)
         return -1;
     else {
-        int fifo_fd = open(fifo_name, O_RDWR);
+        int fifo_fd = open(fifo_name, O_WRONLY | O_NONBLOCK);
         if (fifo_fd == -1)
             return -1;
         else {

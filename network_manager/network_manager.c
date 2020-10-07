@@ -872,10 +872,12 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
     if (sock->state == SYN_SENT) {
         if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
 
+            sock->seq_of_first_send_window--;
             TCPPacket syn_packet = construct_packet(sock, "", SYN, sock_id->dst_port);
+            sock->seq_of_first_send_window++;
+            
             if (NULL == syn_packet) return 0;
 
-            syn_packet->seq_num = sock->seq_of_first_send_window;
 
             if (0 == send_TCP_packet(syn_packet, manager, sock_id->dst_ip)) {
                 sock->last_send_clock = clock();
@@ -884,10 +886,12 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
         }
     } else if (sock->state == SYN_RECEIVED) {
         if (DIFF2SEC(clock() - sock->last_send_clock) > SOCKET_SEND_AGAIN_TIME) {
+            sock->seq_of_first_send_window--;
             TCPPacket syn_ack_packet = construct_packet(sock, "", SYN | ACK, sock_id->dst_port);
+            sock->seq_of_first_send_window++;
             if (NULL == syn_ack_packet) return 0;
 
-            syn_ack_packet->seq_num = sock->seq_of_first_send_window;
+            syn_ack_packet->seq_num = sock->seq_of_first_send_window - 1;
             syn_ack_packet->ack_num = sock->seq_of_first_recv_window;
 
             if (0 == send_TCP_packet(syn_ack_packet, manager, sock_id->dst_ip)) {

@@ -129,7 +129,7 @@ TCPPacket handle_packet_syn_sent(Socket socket, TCPPacket packet, char* src_ip, 
     if (!(packet->flags & SYN)) { return NULL;}
     //if ((!(packet->flags & SYN)) || (!(packet->flags & ACK))) { return generate_rst_packet(socket);}
 
-    if (!(packet->flags & ACK) || packet->ack_num != socket->seq_of_first_send_window + 1)
+    if (!(packet->flags & ACK) || packet->ack_num != socket->seq_of_first_send_window)
         return NULL;
 
 
@@ -148,7 +148,7 @@ TCPPacket handle_packet_syn_sent(Socket socket, TCPPacket packet, char* src_ip, 
 TCPPacket handle_packet_syn_received(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
     if (!(packet->flags & ACK)) { return NULL;}
 
-    if (!(packet->ack_num == socket->seq_of_first_send_window + 1))
+    if (!(packet->ack_num == socket->seq_of_first_send_window))
         return NULL;
 
     if (0 == notify_accept_client(manager, socket))
@@ -171,7 +171,6 @@ void receiveNewData(Socket socket, TCPPacket packet) {
                     }
                 }
             }
-
     update_recv_window(socket);
 }
 
@@ -192,7 +191,6 @@ TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_i
     }
 
     if (packet->data != NULL) {
-        printf("Packet data: %s.\n", packet->data);
         receiveNewData(socket, packet);
         return(construct_packet(socket, "", ACK, packet->src_port));
     } else {

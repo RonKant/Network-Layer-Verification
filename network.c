@@ -583,10 +583,13 @@ int SocketSend(SocketID sockid, char* message, int len) {
     char* send_fifo_name = get_socket_send_fifo_name(sockid);
     if (NULL == send_fifo_name) return -1;
 
-    int written = write_string_to_fifo_name(send_fifo_name, message, len);
-
+    int send_fifo_fd = open(send_fifo_name, O_RDWR);
     free(send_fifo_name);
-    return written;
+    if (-1 == send_fifo_fd) {
+        return -1;
+    }
+
+    return write(send_fifo_fd, message, len);
 }
 
 
