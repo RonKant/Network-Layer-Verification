@@ -53,7 +53,5 @@ bool send_packet(Socket socket, char* tcp_as_str, char* ip_dst);
  */
 bool handle_ip_message(char* ip_header, HashMap hashMap);
 void* xcalloc(size_t nelem,size_t elem_size);
-char* strcat_t(char* dest, char* source);
-unsigned int strlen_t(char* str);
 
 #endif //CODE_IP_H
