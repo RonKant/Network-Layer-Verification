@@ -14,6 +14,17 @@
 
 typedef struct HashMap_t *HashMap;
 
+
+struct HashMap_t{
+    int size;
+    int number_of_sockets;
+    Socket table[5];
+    SocketID socket_id[5];
+    Socket ghost_v;
+    bool ghost_has_v;
+};
+
+
 typedef enum {
     HASH_MAP_SUCCESS,
     HASH_MAP_ALLOCATION_FAIL,
@@ -40,17 +51,13 @@ bool compareKeys(SocketID key1,SocketID key2);
 SocketID copyKeyFunction(SocketID key,HashMapErrors *error);
 HashMapErrors keyFree(SocketID);
 
-HashMap createHashMap(int size);
-int hashCode(HashMap hashMap, SocketID key);
+HashMap createHashMap();
 bool insertSocket(HashMap hashMap,Socket socket);
 Socket getSocket(HashMap hashMap,SocketID key);
 bool hashmapRemove(HashMap hashMap, SocketID key);
-void hashDestroy(HashMap hashMap, HashMapErrors *error);
+bool hashDestroy(HashMap hashMap);
 int getHashMapNumberOfSockets(HashMap hashMap);
-
-SocketID hashMapGetFirst(HashMap hashMap);
-void hashMapSetFirst(HashMap hashMap);
-SocketID hashMapGetNext(HashMap hashMap);
+bool hasKey(HashMap hashMap, SocketID socketId);
 
 void hashMapSetSize(HashMap hashMap);
 int getHashMapSize(HashMap hashMap);

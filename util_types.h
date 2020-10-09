@@ -132,7 +132,7 @@ typedef struct {
      * The send window stores bytes that have been sent but not yet acknowledged.
      * bytes leave it's "left" end when acknowledged.
      */
-    Queue send_window; // TODO: change to Tomer's queue.
+    //Queue send_window; // TODO: change to Tomer's queue.
     int seq_of_first_send_window;
 
     /**

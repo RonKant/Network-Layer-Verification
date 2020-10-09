@@ -7,7 +7,7 @@
 #include "fifo_utils.h"
 #include "socket_utils.h"
 #include "socket.h"
-#include "array_queue.h"
+//#include "array_queue.h"
 #include "network.h"
 #include<seahorn/seahorn.h>
 
@@ -106,10 +106,10 @@ bool compare_socket(void* s1, void* s2) {
  */
 void destroy_socket(void* socket) {
     Socket socket_to_destroy = (Socket) socket;
-    if (socket_to_destroy->send_window != NULL) QueueDestroy(socket_to_destroy->send_window,NULL);
+    //if (socket_to_destroy->send_window != NULL) QueueDestroy(socket_to_destroy->send_window,NULL);
     if (socket_to_destroy->recv_window != NULL) free(socket_to_destroy->recv_window);
     if (socket_to_destroy->recv_window_isvalid != NULL) free(socket_to_destroy->recv_window_isvalid);
-    if (socket_to_destroy->connections != NULL)  QueueDestroy(socket_to_destroy->connections,NULL);
+    //if (socket_to_destroy->connections != NULL)  QueueDestroy(socket_to_destroy->connections,NULL);
     if (socket_to_destroy->id != NULL) destroy_socket_id(socket_to_destroy->id);
     free(socket_to_destroy);
 }
@@ -135,7 +135,7 @@ Socket create_new_socket(){
 	s->end_fifo_read_end = -1;
 	s->end_fifo_write_end = -1;
 
-	s->send_window = NULL;
+	//s->send_window = NULL;
 	s->recv_window = NULL;
 	s->recv_window_isvalid = NULL;
 
@@ -144,14 +144,14 @@ Socket create_new_socket(){
 
 	s->connections = NULL;
 
-	s->send_window = QueueCreate(5); // TODO: change to actual functions
+	//s->send_window = QueueCreate(5); // TODO: change to actual functions
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
 
 	// s->connections = createQueue_g(sizeof(char) * MAX_SOCKET_STRING_REPR_SIZE);
 
-	if (NULL == s->send_window
-		|| NULL == s->recv_window
+	if (/*NULL == s->send_window
+		||*/ NULL == s->recv_window
 		|| NULL == s->recv_window_isvalid) {
 			destroy_socket(s);
 			return NULL;
@@ -176,7 +176,7 @@ void* copy_socket(void* to_copy) {
 	s->end_fifo_read_end = -1;
 	s->end_fifo_write_end = -1;
 
-	s->send_window = NULL;
+	//s->send_window = NULL;
 	s->recv_window = NULL;
 	s->recv_window_isvalid = NULL;
 
@@ -190,12 +190,12 @@ void* copy_socket(void* to_copy) {
         return NULL;
     }
 
-    s->send_window = QueueCopy(to_copy_socket->send_window, (copyElem)strcpy_t);
+    /*s->send_window = QueueCopy(to_copy_socket->send_window, (copyElem)strcpy_t);
     if (NULL == s->send_window) {
         destroy_socket(s);
         return NULL;
     }
-
+    */
     s->recv_window = (char*)xmalloc(sizeof(char) * to_copy_socket->max_recv_window_size);
     if (s->recv_window == NULL) {
         destroy_socket(s);

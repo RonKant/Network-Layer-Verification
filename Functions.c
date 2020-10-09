@@ -5,9 +5,8 @@
 #include<seahorn/seahorn.h>
 #include "network.h"
 void* xmalloc(size_t sz){
-    sassert(sz <= 4096);
     void *p;
-    p=malloc(4096);
+    p=malloc(sz);
     assume(p>0);
     return p;
 }

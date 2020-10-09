@@ -9,7 +9,7 @@
 #include<stdint.h>
 #include<stddef.h>
 #include "socket_utils.h"
-#include "array_queue.h"
+//#include "array_queue.h"
 #include "Functions.h"
 #include<seahorn/seahorn.h>
 
@@ -49,11 +49,12 @@ void nd_ip(char* dst){
 
 void hashMapTests(){
     ////creation TEST
-    HashMap hash_map1 = createHashMap(1);
+    HashMap hash_map1 = createHashMap();
     sassert(hash_map1 != NULL);
-    sassert(getHashMapSize(hash_map1) == 1);
-    /////insertion TEST
+    sassert(getHashMapSize(hash_map1) == 5);
+    sassert(getHashMapNumberOfSockets(hash_map1) == 0);
 
+    /////insertion TEST
     //ID1 for Socket1
     SocketID socket1ID= xmalloc(sizeof(*socket1ID));
     //nd_ip(socket1ID->src_ip);
@@ -63,54 +64,68 @@ void hashMapTests(){
     //assume((socket1ID->src_ip,socket1ID->dst_ip)!= 0);
     socket1ID->src_port = nd();
     socket1ID->dst_port = nd();
-/*
+
     //ID3 for Socket3
     SocketID socket3ID= xmalloc(sizeof(*socket3ID));
+    assume(socket3ID != socket1ID);
     strcpy_t(socket3ID->src_ip,"192.168.1.244");
     strcpy_t(socket3ID->dst_ip,"192.168.1.246");
     socket3ID->src_port = nd();
     socket3ID->dst_port = nd();
-*/
+
     //ID4 for socket4:
     SocketID socket4ID= xmalloc(sizeof(*socket4ID));
+    assume(socket4ID != socket1ID);
+    assume(socket4ID != socket3ID);
     strcpy_t(socket4ID->src_ip,"192.168.1.248");
     strcpy_t(socket4ID->dst_ip,"192.168.1.250");
     socket4ID->src_port = nd();
     socket4ID->dst_port = nd();
-    assume(socket4ID != socket1ID);
-    assume(socket1ID != socket4ID);
 
-
-    //insertion of the second socket
-    //hashmap status:
-    // [0] : NULL
-    // [1] : ([socket1]<-[socket3]<-||)
+    //ID5 for socket4:
+    SocketID socket5ID= xmalloc(sizeof(*socket5ID));
+    assume(socket5ID != socket1ID);
+    assume(socket5ID != socket3ID);
+    assume(socket5ID != socket4ID);
+    strcpy_t(socket5ID->src_ip,"192.168.1.252");
+    strcpy_t(socket5ID->dst_ip,"192.168.1.254");
+    socket5ID->src_port = nd();
+    socket5ID->dst_port = nd();
 
     //Socket1 creation
     Socket socket1 = create_new_socket();
     socket1->id = socket1ID;
     sassert(compareKeys(socket1->id,socket1ID) ==true);
     assume(socket1->id == socket1ID);
-    sassert(socket1->id != socket4ID);
 
-/*
+
     //creation of socket3
     Socket socket3 = create_new_socket();
     assume(socket3 != socket1);
     socket3->id = socket3ID;
     sassert(compareKeys(socket3->id,socket3ID) ==true);
     assume(socket3->id == socket3ID);
-*/
 
-/*
     //creation of socket4:
     Socket socket4 = create_new_socket();
-    assume(socket4 != socket1 && socket4 != socket3);
+    assume(socket4 != socket1);
+    assume(socket4 != socket3);
     socket4->id = socket4ID;
     sassert(compareKeys(socket4->id,socket4ID) ==true);
     assume(socket4->id == socket4ID);
-*/
-    sassert(getHashMapNumberOfSockets(hash_map1) == 0);
+
+
+    if(hash_map1->ghost_v == socket1){
+        assume(hash_map1->ghost_has_v == 1);
+    }
+    if(hash_map1->ghost_v == socket3){
+        assume(hash_map1->ghost_has_v == 1);
+    }
+    if(hash_map1->ghost_v == socket4){
+        assume(hash_map1->ghost_has_v == 1);
+    }
+
+
     //insertion of the first socket
     //hashmap status:
     // [0] : NULL
@@ -118,7 +133,10 @@ void hashMapTests(){
     bool value = insertSocket(hash_map1,socket1);
     assume(value == true);
     sassert(getHashMapNumberOfSockets(hash_map1) == 1);
-/*
+
+
+
+
     //insertion of the second socket
     //hashmap status:
     // [0] : NULL
@@ -126,8 +144,9 @@ void hashMapTests(){
     bool value2 = insertSocket(hash_map1,socket3);
     assume(value2 == true);
     sassert(getHashMapNumberOfSockets(hash_map1) == 2);
-*/
-/*
+
+
+
     //insertion of the third socket
     //hashmap status:
     // [0] : NULL
@@ -135,67 +154,104 @@ void hashMapTests(){
     bool value3 = insertSocket(hash_map1,socket4);
     assume(value3 == true);
     sassert(getHashMapNumberOfSockets(hash_map1) == 3);
-*/
-    assume(socket1->id == socket1ID);
-    //assume(socket3->id == socket3ID);
-    //assume(socket4->id == socket4ID);
-    assume(socket4ID != socket1ID);
+    /*
+     * trying to get a socket that isn't in the Hashmap.
+    */
+    assume(socket3ID != socket1ID);
 
-    SocketID first = hashMapGetFirst(hash_map1);
-    //SocketID second = hashMapGetNext(hash_map1);
-    sassert(first == socket1ID);
-    sassert(compareKeys(socket1ID,first) == true);
+    assume(socket4ID != socket1ID);
+    assume(socket4ID != socket3ID);
+
+    assume(socket5ID != socket1ID && compareKeys(socket5ID,socket1ID) == false);
+    assume(socket5ID != socket3ID);
+    assume(socket5ID != socket4ID);
+
+
+    assume(socket1->id == socket1ID);
+    assume(socket3->id == socket3ID);
+    assume(socket4->id == socket4ID);
+
+
+    bool b = hasKey(hash_map1,socket5ID);
+    if(hash_map1->ghost_v->id == socket5ID)
+        sassert(!b);
+
+    b = hasKey(hash_map1,socket1ID);
+    if(hash_map1->ghost_v == socket1)
+        sassert(b);
+
+    b = hasKey(hash_map1,socket3ID);
+    if(hash_map1->ghost_v == socket3)
+        sassert(b);
+
+    b = hasKey(hash_map1,socket4ID);
+    if(hash_map1->ghost_v == socket4)
+        sassert(b);
+
+    sassert(hash_map1->table[0] == socket1);
+    sassert(hash_map1->table[1] == socket3);
+    sassert(hash_map1->table[2] == socket4);
+
+   /*
+    * Socket error = getSocket(hash_map1,socket5ID);
+    * sassert(error == NULL);
+    Socket first = getSocket(hash_map1,socket1ID);
+    //Socket second = getSocket(hash_map1,socket3ID);
+    sassert(first == socket1);
+    sassert(compareKeys(socket1ID,first->id) == true);
     //sassert(second == socket3ID);
     //sassert(compareKeys(socket3ID,second) == true);
-
-
+    */
 
     //hashmapRemove Tests
     //Trying to remove a null argument - should not work
-    bool b = hashmapRemove(hash_map1,NULL);
+    b = hashmapRemove(hash_map1,NULL);
     sassert(b == false);
     b = hashmapRemove(NULL,socket1ID);
     sassert(b == false);
     b = hashmapRemove(NULL,NULL);
     sassert(b == false);
-    sassert(getHashMapNumberOfSockets(hash_map1) == 1);
+    sassert(getHashMapNumberOfSockets(hash_map1) == 3);
 
     assume(socket1->id == socket1ID);
-    //assume(socket3->id == socket3ID);
+    assume(socket3->id == socket3ID);
     assume(socket4ID != socket1ID);
-    assume(compareKeys(socket4ID,socket1ID) == false);
+    //assume(compareKeys(socket4ID,socket1ID) == false);
 
 
 
     //Trying to remove an element that isnt in the hasmap - should not work
-    b = hashmapRemove(hash_map1,socket4ID);
+    /*b = hashmapRemove(hash_map1,socket4ID);
     sassert(b == false);
     sassert(getHashMapNumberOfSockets(hash_map1) == 1);
     assume(socket4ID != socket1ID);
+     */
+    //removing socket1
+    b = hashmapRemove(hash_map1,socket1ID);
+    sassert(b == true);
+    sassert(getHashMapNumberOfSockets(hash_map1) == 2);
+
     //removing socket3
     //hashmap status:
-    // [0] : NULL
-    // [1] : ([socket1]<-||)
-    b = hashmapRemove(hash_map1,socket1ID);
-    sassert(b == true);
-    sassert(getHashMapNumberOfSockets(hash_map1) == 0);
-/*
-    //removing socket1
-    //hashmap status:
     // [0] : (||)
-    b = hashmapRemove(hash_map1,socket1ID);
+    b = hashmapRemove(hash_map1,socket3ID);
     sassert(b == true);
     sassert(getHashMapNumberOfSockets(hash_map1) == 1);
-*/
-/*
+
+    b = hashmapRemove(hash_map1,socket4ID);
+    sassert(b == true);
+    sassert(getHashMapNumberOfSockets(hash_map1) == 0);
+
+
     ////////////////hashDestroy Function/////////////////////
-    hashDestroy(NULL,err);
-    sassert(*err == HASH_MAP_NULL_ARGUMENT);
-    hashDestroy(hash_map1,err);
-    sassert(*err == HASH_MAP_SUCCESS);
+    b = hashDestroy(NULL);
+    sassert(!b);
+    assume(hash_map1 != NULL);
+    hashDestroy(hash_map1);
+    sassert(b);
     printf("---------\n");
     printf("HASHMAP TESTS SUCCESS\n");
-*/
+
 }
 
 
