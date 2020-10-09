@@ -368,7 +368,6 @@ int read_message_until_char(int fd, char* buf, char stop) {
     while ((read_value = read(fd, &current_char, 1)) > 0) {
         *current_end = current_char;
         current_end++;
-
         if (current_char == stop) break;
     }
 

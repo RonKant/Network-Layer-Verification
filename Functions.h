@@ -9,12 +9,11 @@
 
 
 void* xmalloc(size_t sz);
-char* strcpy_t(char* dest, char* source);
-int strcmp_t(char* str1,char* str2);
+char* strcpy_t(char* dest, const char* source);
+int strcmp_t(const char string1[], const char string2[]);
 void myMemCpy(void *dest, void *src, size_t n);
 int strlen_t(const char *s);
 char* strcat_t(char* destination, const char* source);
-
 
 
 

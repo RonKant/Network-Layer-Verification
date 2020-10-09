@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [[ "$1" = "server" ]]; then
+	gcc -std=c99 -Wall -Werror -pedantic-errors server_main.c Functions.c socket_utils.c fifo_utils.c network.c array_queue.c -o ./server_main -g
+fi
+
+if [[ "$1" = "client" ]]; then
+	gcc -std=c99 -Wall -Werror -pedantic-errors client_main.c Functions.c socket_utils.c fifo_utils.c network.c array_queue.c -o ./client_main -g
+fi
+
+if [[ "$1" = "manager" ]]; then
+	gcc -std=c99 -Wall -Werror -pedantic-errors ./network_manager/network_manager.c ./Functions.c ./socket_utils.c ./packet_handlers.c ./fifo_utils.c ./array_queue.c ./Hashmap.c ./ip.c ./tcp.c ./network_manager/manager_main.c -o  ./manager -g
+fi

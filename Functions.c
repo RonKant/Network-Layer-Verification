@@ -2,35 +2,52 @@
 // Created by Ido Yam on 27/09/2020.
 //
 #include "Functions.h"
-//#include<seahorn/seahorn.h>
-
+// #include<seahorn/seahorn.h>
+#include "network.h"
 void* xmalloc(size_t sz){
     void *p;
     p=malloc(sz);
-    //assume(p>0);
+    assume(p>0);
     return p;
 }
-char* strcpy_t(char* dest, char* source){
+char* strcpy_t(char* dest, const char* source){
     //assume(dest > 0 && source > 0);
     if(dest == NULL || source == NULL)
         return NULL;
-    char* ptr = dest;
-    while(*source != '\0'){
-        *dest = *source;
-        dest++;
-        source++;
+    unsigned int i;
+    for(i=0; source[i]!='\0' && i<IP_ADDR_SIZE-1; i = i+1){
+        dest[i] = source[i];
     }
-    *dest = '\0';
-    return ptr;
+    dest[i]='\0';
+    i++;
+    for(;i<IP_ADDR_SIZE;i++){
+        dest[i]=1;
+    }
+    return dest;
 }
-int strcmp_t(char* str1,char* str2){
-    //sassert(str1 != NULL && str2 !=NULL);
-    if (NULL == str1) {
-        return NULL != str2;
+int strcmp_t(const char string1[], const char string2[] )
+{
+    int i = 0;
+    int flag = 0;
+    while (flag == 0)
+    {
+        if (string1[i] > string2[i])
+        {
+            flag = 1;
+        }
+        else if (string1[i] < string2[i])
+        {
+            flag = -1;
+        }
+
+        if (string1[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
     }
-    while(*str1 && (*str1==*str2))
-        str1++,str2++;
-    return *(const unsigned char*)str1-*(const unsigned char*)str2;
+    return flag;
 }
 int strlen_t(const char *s) {
     int i;

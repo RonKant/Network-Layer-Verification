@@ -16,22 +16,6 @@ typedef struct conn_queue_t* ConnQueue;
 
 // from tcp.h
 
-// #define PHANTOM_BYTE "b"
-// #define PACKET_SIZE_LIMIT 512
-// typedef struct {
-// 	int src_port;
-// 	int dst_port;
-// 	int seq_num;
-// 	int ack_num;
-// 	int data_offset; // header size in multiples of 32
-// 	char flags; // without NS
-// 	int window_size; // bytes you can receive starting from ack_num
-// 	int checksum;
-// 	char* data; // the message itself, after the header
-// } * TCPPacket;
-
-// from socket.h
-
 typedef enum {
     CONNECTED_SOCKET,
     BOUND_ONLY_SOCKET,
