@@ -2,43 +2,73 @@
 // Created by Ido Yam on 27/09/2020.
 //
 #include "Functions.h"
-
+#include<seahorn/seahorn.h>
+#include "network.h"
 void* xmalloc(size_t sz){
+    sassert(sz <= 4096);
     void *p;
-    p=malloc(sz);
-    //assume(p>0);
+    p=malloc(4096);
+    assume(p>0);
     return p;
 }
-char* strcpy_t(char* dest, char* source){
+char* strcpy_t(char* dest, const char* source){
     //assume(dest > 0 && source > 0);
     if(dest == NULL || source == NULL)
         return NULL;
-    char* ptr = dest;
-    while(*source != '\0'){
-        *dest = *source;
-        dest++;
-        source++;
+    unsigned int i;
+    for(i=0; source[i]!='\0' && i<IP_ADDR_SIZE-1; i = i+1){
+        dest[i] = source[i];
     }
-    *dest = '\0';
-    return ptr;
-}
-int strcmp_t(char* str1,char* str2){
-    //sassert(str1 != NULL && str2 !=NULL);
-    if (NULL == str1) {
-        return NULL != str2;
+    dest[i]='\0';
+    i++;
+    for(;i<IP_ADDR_SIZE;i++){
+        dest[i]=1;
     }
-    while(*str1 && (*str1==*str2))
-        str1++,str2++;
-    return *(const unsigned char*)str1-*(const unsigned char*)str2;
+    return dest;
 }
-
-void myMemCpy(void *dest, void *src, size_t n)
+int strcmp_t(const char string1[], const char string2[] )
 {
-    // Typecast src and dest addresses to (char *)
-    char *csrc = (char *)src;
-    char *cdest = (char *)dest;
+    int i = 0;
+    int flag = 0;
+    while (flag == 0)
+    {
+        if (string1[i] > string2[i])
+        {
+            flag = 1;
+        }
+        else if (string1[i] < string2[i])
+        {
+            flag = -1;
+        }
 
-    // Copy contents of src[] to dest[]
-    for (int i=0; i<n; i++)
-        cdest[i] = csrc[i];
+        if (string1[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    }
+    return flag;
 }
+int strlen_t(const char *s) {
+    int i;
+    for (i = 0; s[i] != '\0'; i++) ;
+    return i;
+}
+// Function to implement strcat() function in C
+char* strcat_t(char* destination, const char* source)
+{
+    // make ptr point to the end of destination string
+    char* ptr = destination + strlen_t(destination);
+
+    // Appends characters of source to the destination string
+    while (*source != '\0')
+        *ptr++ = *source++;
+
+    // null terminate destination string
+    *ptr = '\0';
+
+    // destination is returned by standard strcat()
+    return destination;
+}
+
