@@ -10,6 +10,8 @@ void* xmalloc(size_t sz){
     assume(p>0);
     return p;
 }
+
+#define IP_ADDR_SIZE 17
 char* strcpy_t(char* dest, const char* source){
     //assume(dest > 0 && source > 0);
     if(dest == NULL || source == NULL)

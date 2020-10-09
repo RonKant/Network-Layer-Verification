@@ -6,6 +6,7 @@
  */
 
 #include "network.h"
+#include "tcp.h"
 #include "util_types.h"
 
 #define EMPTY_PORT 0
@@ -29,6 +30,7 @@ bool is_socket_connected(SocketID sock_id);
 bool is_socket_bound_only(SocketID sock_id);
 
 bool is_socket_empty(SocketID sock_id);
+
 
 SocketState get_socket_state(SocketID sock_id);
 

@@ -349,7 +349,7 @@ void unlink_and_clean_manager(NetworkManager manager) {
         }
     }
 
-    hashDestroy(manager->sockets, NULL);
+    hashDestroy(manager->sockets);
     manager->sockets = NULL;
 }
 
@@ -403,7 +403,7 @@ void remove_and_destroy_socket(NetworkManager manager, SocketID sock_id) {
         return; // nothing to destroy.
     }
 
-    hashmapRemove(manager->sockets, sock_id, NULL);
+    hashmapRemove(manager->sockets, sock_id);
     unlink_socket_fifos_server_side(to_remove, manager);
     destroy_socket(to_remove);
 }
@@ -464,7 +464,7 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
         result = -1;
     } else {
 
-        HashMapErrors err = insertSocket(manager->sockets, sock_id, new_socket);
+        HashMapErrors err = insertSocket(manager->sockets, new_socket);
         if (err != HASH_MAP_SUCCESS) {
             printf("Error: failed inserting socket in to hash map.\n");
             result = -1;
@@ -719,9 +719,8 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
     if (sock == NULL || sock->state == LISTEN) {
         return 0;
     } else {
-        HashMapErrors err;
-        hashmapRemove(manager->sockets, sock_id, &err);
-        if (err != HASH_MAP_SUCCESS) {
+        bool result = hashmapRemove(manager->sockets, sock_id);
+        if (result != true) {
             printf("Error: failed removing listener socket from hashmap.\n");
             return -1;
         }
@@ -733,7 +732,7 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         (sock->id)->dst_port = dst_port;
         strcpy(sock_id->dst_ip, dst_ip);
         sock_id->dst_port = dst_port;
-        if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock_id, sock)) {
+        if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock)) {
             printf("Error: hash map insertion error in socket connect.\n");
             return -1;
         }
