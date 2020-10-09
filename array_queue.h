@@ -4,26 +4,24 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#define DEFAULT_QUEUE_CAPACITY 8192
 
-typedef void* QueueElement;
-typedef void* Parameter;
-typedef bool (*conditionFunction)(QueueElement, Parameter);
-typedef void (*freeElem)(QueueElement);
-typedef QueueElement (*copyElem)(QueueElement);
+#define QUEUE_EMPTY_ELEMENT '\0'
+
+typedef char QueueElement;
 
 typedef struct Queue_t* Queue;
 
-Queue QueueCreate(int capacity);
-void QueueDestroy(Queue q,  freeElem free_func);
-Queue QueueCopy(Queue q, copyElem copy);
+Queue QueueCreate();
+void QueueDestroy(Queue q);
 bool enqueue(Queue q, QueueElement element);
 QueueElement dequeue(Queue q);
 bool QueueIsFull(Queue q);
 bool QueueIsEmpty(Queue q);
 int QueueSize(Queue q);
 int QueueCapacity(Queue q);
-QueueElement QueueFindByCondition(Queue q, conditionFunction cond, Parameter param);
-QueueElement QueueRemoveByCondition(Queue q, conditionFunction cond, Parameter param);
+
+Queue QueueCopy(Queue q);
 
 QueueElement QueueGetFirst(Queue q);
 QueueElement QueueGetNext(Queue q);
@@ -32,7 +30,7 @@ QueueElement QueueGetElement(Queue q, int index);
 
 #define QUEUE_FOR_EACH(item, queue) \
     for (QueueElement item = QueueGetFirst(queue); \
-        item != NULL; \
+        item != QUEUE_EMPTY_ELEMENT; \
         item = QueueGetNext(queue))
 
 
