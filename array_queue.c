@@ -65,7 +65,7 @@ bool enqueue(Queue q, QueueElement element) {
 
 QueueElement dequeue(Queue q) {
     // assume(q!=NULL);
-    if (QueueIsEmpty(q)) return NULL;
+    if (QueueIsEmpty(q)) return QUEUE_EMPTY_ELEMENT;
 
     QueueElement element = (q->array)[q->head];
     (q->array)[q->head] = QUEUE_EMPTY_ELEMENT;
@@ -120,10 +120,19 @@ int QueueCapacity(Queue q) {
 QueueElement QueueGetFirst(Queue q) {
     // assume(q!=NULL);
     if (NULL == q ) return QUEUE_EMPTY_ELEMENT;
-    if (QueueIsEmpty(q)) return NULL;
+    if (QueueIsEmpty(q)) return QUEUE_EMPTY_ELEMENT;
 
     q->iterator = 0;
     return (q->array)[q->head];
+}
+
+Queue QueueCopy(Queue q) {
+    Queue copied = QueueCreate();
+    if (NULL == copied) return NULL;
+    QUEUE_FOR_EACH(item, q) {
+        enqueue(copied, item);
+    }
+    return copied;
 }
 
 QueueElement QueueGetNext(Queue q) {

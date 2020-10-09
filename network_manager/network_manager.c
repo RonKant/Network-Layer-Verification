@@ -595,14 +595,10 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
     printf("Received listen(%c) request from port: %d.\n", *request, sock_id->src_port);
     char reply;
 
-    sock->connections = QueueCreate(*request);
-    if (sock->connections == NULL) {
-        reply = REQUEST_DENIED_FIFO;
-    } else {
-        sock->state = LISTEN;
-        sock->max_connections = (int)(*request);
-        reply = REQUEST_GRANTED_FIFO;
-    }
+
+    sock->state = LISTEN;
+    sock->max_connections = (int)(*request);
+    reply = REQUEST_GRANTED_FIFO;
 
 
     if (REQUEST_GRANTED_FIFO == reply) {
@@ -623,8 +619,6 @@ int check_and_handle_listen_request(SocketID sock_id, NetworkManager manager) {
         printf("Error: writing response %c to client on port %d failed.\n", reply, sock_id->src_port);
         if (reply == REQUEST_GRANTED_FIFO) {
             sock->state = CLOSED;
-            QueueDestroy(sock->connections, NULL);
-            sock->connections = NULL;
         }
     }
     close(listen_fifo_write_fd);
