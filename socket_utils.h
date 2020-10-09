@@ -5,9 +5,10 @@
  * Utility functions for handling sockets
  */
 
+#include "util_types.h"
 #include "network.h"
 #include "tcp.h"
-#include "util_types.h"
+
 
 #define EMPTY_PORT 0
 #define MAX_PORT_STRING_LENGTH

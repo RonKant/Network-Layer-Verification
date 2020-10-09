@@ -7,7 +7,7 @@
 void* xmalloc(size_t sz){
     void *p;
     p=malloc(sz);
-    assume(p>0);
+    // assume(p>0);
     return p;
 }
 

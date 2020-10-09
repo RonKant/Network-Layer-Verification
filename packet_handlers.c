@@ -183,7 +183,7 @@ TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_i
         int packet_ack_num = packet->ack_num;
         while(socket->seq_of_first_send_window < packet_ack_num
              && false == QueueIsEmpty(socket->send_window)) {
-                free(dequeue(socket->send_window));
+                dequeue(socket->send_window);
                 socket->seq_of_first_send_window++;
         }
     }

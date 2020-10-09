@@ -9,6 +9,57 @@
 
 #define MAX_WINDOW_SIZE 1024
 
+typedef enum {
+    CONNECTED_SOCKET,
+    BOUND_ONLY_SOCKET,
+    EMPTY_SOCKET,
+    INVALID_SOCKET
+} SocketState;
+
+/**
+ * This is an FSM representation of an active connection
+ */
+typedef enum {
+	CLOSED, 		// initial state - does not respond to anything. 
+					// passive open (server listen) -> LISTEN
+					// active open (client connect) + Send SYN -> SYN_SENT
+
+	LISTEN,			// waiting for a connection.
+					// receive client SYN + send SYN+ACK -> SYN_RECEIVED
+
+	SYN_SENT, 		// normally a client state -- sent it's first SYN and waiting for a response
+					// receive SYN + send ACK -> SYN_RECEIVED.
+					// receive SYN+ACK + send ACK -> ESTABLISHED
+
+	SYN_RECEIVED,	//waiting for final ack to establish connection
+					// receive ACK -> ESTABLISHED
+
+	ESTABLISED,		// main "steady" state -- can now exchange data.
+					// Close + send FIN -> FIN_WAIT_1
+					// receive FIN -> CLOSE_WAIT
+
+	CLOSE_WAIT,		// device has received a close request FIN -- it must wait for the app to generate a matchine request
+					// Close + send FIN -> LAST_ACK.
+
+	LAST_ACK,		// a device that's already received a close request and acknowledged, has sent it's own FIN and waits for final ACK.
+					// receive ACK for FIN -> CLOSED.
+
+	FIN_WAIT_1,		// waiting for an ACK for it's FIN or a close request from other side.
+					// receive ACK for FIN -> FIN_WAIT_2.
+					// receive FIN + send ACK -> CLOSING.
+
+	FIN_WAIT_2,		// device has received ACK for it's FIN and is waiting for other side's FIN.
+					// receive FIN + send ACK -> TIME_WAIT.
+
+	CLOSING,		// device has received FIN and sent an ACK, but has not received ACK for it's own FIN.
+					// receive ACK for FIN -> TIME_WAIT
+
+	TIME_WAIT		// connection is done. Must wait to ensure no connection overlap.
+					// after some defined time -> CLOSED (and delete from hashmap).
+} TCPState;
+
+
+
 typedef struct {
     SocketID id;
     TCPState state;

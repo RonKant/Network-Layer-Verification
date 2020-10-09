@@ -22,6 +22,7 @@ struct HashMap_t{
     SocketID socket_id[5];
     Socket ghost_v;
     bool ghost_has_v;
+    int iterator_index;
 };
 
 
@@ -64,6 +65,9 @@ int getHashMapSize(HashMap hashMap);
 bool HashMapSocketRemoveCond(Socket socket, SocketID socketId);
 
 bool HashMapcmp(HashMap hashMap1, HashMap hashMap2);
+
+SocketID hashMapGetFirst(HashMap hashmap);
+SocketID hashMapGetNext(HashMap hashmap);
 
 #define HASH_MAP_FOREACH(sock_id, hashmap) \
     for (SocketID sock_id = hashMapGetFirst(hashmap); \

@@ -871,10 +871,7 @@ char* get_next_socket_packet_data(Socket sock) {
     int bytes_added = 0;
 
     QUEUE_FOR_EACH(item, sock->send_window) {
-        char* byte = item;
-        if (NULL == byte) break;
-
-        data[bytes_added++] = *byte;
+        data[bytes_added++] = item;
 
         if (bytes_added == MAX_DATA_PER_PACKET) break;
     }
@@ -961,32 +958,19 @@ int check_and_handle_outgoing_status_messages(SocketID sock_id, NetworkManager m
 
         if (-1 == socket_send_fifo_fd) return 0;
 
-        char* read_byte = (char*)malloc(sizeof(*read_byte));
-        if (NULL == read_byte) {
-            close(socket_send_fifo_fd);
-            return 0;
-        }
+        char read_byte;
 
         for (int i = 0; i < MAX_DATA_PER_PACKET; ++i) {
             if (QueueSize(sock->send_window) >= QueueCapacity(sock->send_window))
                 break;
 
-            int read_length = read(socket_send_fifo_fd, read_byte, 1);
+            int read_length = read(socket_send_fifo_fd, &read_byte, 1);
             if (read_length != 1) break;
 
-            char* data_byte = (char*)malloc(sizeof(*data_byte));
-            // we can't allow these bytes to get lost
-            if (NULL == data_byte) {
-                enqueue(sock->send_window, read_byte);
-                close(socket_send_fifo_fd);
-                return 0;
-            } 
-
-            memcpy(data_byte, read_byte, 1);
-            enqueue(sock->send_window, data_byte);
+            enqueue(sock->send_window, read_byte);
+            close(socket_send_fifo_fd);
         }
         close(socket_send_fifo_fd);
-        free(read_byte);
     } else if (sock->state == FIN_WAIT_1) {
         if (DIFF2SEC(clock() - sock->time_since_fin_sent) > SOCKET_FIN_RST_TIME) {
             TCPPacket rst_packet = construct_packet(sock, "", RST, sock_id->dst_port);

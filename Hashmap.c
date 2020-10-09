@@ -15,10 +15,10 @@
 
 // #include "seahorn/seahorn.h"
 
-extern void* nd_ptr();
-extern void* nd();
+// extern void* nd_ptr();
+// extern void* nd();
 
-
+#define HASH_MAP_DEFAULT_SIZE 100
 
 bool compareKeys(SocketID key1,SocketID key2){
    
@@ -42,39 +42,45 @@ bool compareKeys(SocketID key1,SocketID key2){
            key1->src_port == key2->src_port && !strcmp_t(key1->dst_ip,key2->dst_ip);
 }
 HashMap createHashMap(){
-    unsigned long offset = 0;
-    unsigned long global_size;
+    // unsigned long offset = 0;
+    // unsigned long global_size;
     HashMap hashMap = xmalloc(sizeof(*hashMap));
-    hashMap->size=5;
-    global_size = sizeof(Socket)*5;
-    for(int i=0; i<5; i = i+1){
-        offset = sizeof(Socket)*i;
-        sassert(offset < global_size); //PROBLEM
-        sassert(offset>=0);
+    hashMap->size=HASH_MAP_DEFAULT_SIZE;
+    // global_size = sizeof(Socket)*HASH_MAP_DEFAULT_SIZE;
+    for(int i=0; i<HASH_MAP_DEFAULT_SIZE; i = i+1){
+        // offset = sizeof(Socket)*i;
+        // sassert(offset < global_size); //PROBLEM
+        // sassert(offset>=0);
         hashMap->table[i] = NULL;
         hashMap->socket_id[i] = NULL;
     }
     hashMap->number_of_sockets = 0;
-    hashMap->ghost_v = nd_ptr();
-    hashMap->ghost_has_v = false;
+    // hashMap->ghost_v = nd_ptr();
+    // hashMap->ghost_has_v = false;
+    hashMap->iterator_index = 0;
     return hashMap;
 }
 bool hasKey(HashMap hashMap, SocketID socketId){
-    if(hashMap->ghost_v->id == socketId)
-        return hashMap->ghost_has_v;
-    return nd();
+    if (NULL == hashMap || NULL == socketId) {
+        return false;
+    }
+    for (int i = 0; i < HASH_MAP_DEFAULT_SIZE; ++i) {
+        if (NULL == hashMap->socket_id[i]) continue;
+        if (compareKeys(hashMap->socket_id[i], socketId)) return true;
+    }
+    return false;
 }
 bool insertSocket(HashMap hashMap,Socket socket){
     if(!hashMap || !socket)
         return false;
-    if(hashMap->number_of_sockets == 5)
+    if(hashMap->number_of_sockets == HASH_MAP_DEFAULT_SIZE)
         return false;
     /*(if(hasKey(hashMap,socket->id))
         return false;*/
-    unsigned long offset = 0;
-    unsigned long global_size = sizeof(Socket)*5;
-    for(int i =0 ; i<5; i = i+1){
-        offset = sizeof(Socket)*i;
+    // unsigned long offset = 0;
+    // unsigned long global_size = sizeof(Socket)*HASH_MAP_DEFAULT_SIZE;
+    for(int i =0 ; i<HASH_MAP_DEFAULT_SIZE; i = i+1){
+        // offset = sizeof(Socket)*i;
         //sassert(offset < global_size); //PROBLEM
         //sassert(offset>=0);
         if(hashMap->table[i] == NULL)
@@ -82,7 +88,7 @@ bool insertSocket(HashMap hashMap,Socket socket){
         if(socket->id == hashMap->table[i]->id)
             return false;
     }
-    for(int j =0 ; j<5; j = j+1){
+    for(int j =0 ; j<HASH_MAP_DEFAULT_SIZE; j = j+1){
         //offset = sizeof(Socket)*j;
         //sassert(offset < global_size); //PROBLEM
         //sassert(offset>=0);
@@ -99,8 +105,8 @@ bool insertSocket(HashMap hashMap,Socket socket){
 }
 
 Socket getSocket(HashMap hashMap,SocketID key){
-    unsigned long offset = 0;
-    unsigned long global_size;
+    // unsigned long offset = 0;
+    // unsigned long global_size;
     if (hashMap == NULL || key == NULL)
         return NULL;
     if (getHashMapNumberOfSockets(hashMap) == 0)
@@ -108,8 +114,8 @@ Socket getSocket(HashMap hashMap,SocketID key){
     if(hasKey(hashMap,key) == false){
         return NULL;
     }
-    global_size = sizeof(Socket)*5;
-    for(int i =0 ; i<5; i = i+1){
+    // global_size = sizeof(Socket)*HASH_MAP_DEFAULT_SIZE;
+    for(int i =0 ; i<HASH_MAP_DEFAULT_SIZE; i = i+1){
         //offset = sizeof(Socket)*i;
         //sassert(offset < global_size); //PROBLEM
         //sassert(offset>=0);
@@ -123,17 +129,17 @@ Socket getSocket(HashMap hashMap,SocketID key){
 
 bool hashmapRemove(HashMap hashMap, SocketID key) {
 
-    int offset = 0;
-    unsigned int global_size;
+    // int offset = 0;
+    // unsigned int global_size;
     if (hashMap == NULL || key == NULL) {
         return false;
     }
-    offset = 0;
-    global_size = sizeof((hashMap->table))*5;
-    for(int i =0 ; i<5; i = i+1) {
-        offset = sizeof((hashMap->table))*i;
-        sassert(offset < global_size); //PROBLEM
-        sassert(offset>=0);
+    // offset = 0;
+    // global_size = sizeof((hashMap->table))*HASH_MAP_DEFAULT_SIZE;
+    for(int i =0 ; i<HASH_MAP_DEFAULT_SIZE; i = i+1) {
+        // offset = sizeof((hashMap->table))*i;
+        // sassert(offset < global_size); //PROBLEM
+        // sassert(offset>=0);
         if (hashMap->table[i] == NULL)
             continue;
         if (compareKeys(key, hashMap->table[i]->id)) {
@@ -155,8 +161,8 @@ bool hashDestroy(HashMap hashMap){
        return false;
     }
     //offset = 0;
-    //global_size = sizeof((hashMap->table))*5;
-    for(int i =0 ; i<5; i = i+1) {
+    //global_size = sizeof((hashMap->table))*HASH_MAP_DEFAULT_SIZE;
+    for(int i =0 ; i<HASH_MAP_DEFAULT_SIZE; i = i+1) {
         //offset = sizeof((hashMap->table))*i;
         //sassert(offset < global_size); //PROBLEM
         //sassert(offset>=0);
@@ -177,4 +183,27 @@ int getHashMapNumberOfSockets(HashMap hashMap){
     if(hashMap == NULL)
         return -1;
     return hashMap->number_of_sockets;
+}
+
+SocketID hashMapGetFirst(HashMap hashmap) {
+    for (int i = 0; i < getHashMapSize(hashmap); ++i) {
+        if (hashmap->socket_id[i] != NULL) {
+            hashmap->iterator_index = i;
+            return hashmap->socket_id[i];
+        }
+    }
+    return NULL;
+}
+SocketID hashMapGetNext(HashMap hashmap) {
+    if (hashmap->iterator_index >= getHashMapSize(hashmap)) return NULL;
+
+    hashmap->iterator_index++;
+
+    for (int i = hashmap->iterator_index; i < getHashMapSize(hashmap); ++i) {
+        if (hashmap->socket_id[i] != NULL) {
+            hashmap->iterator_index = i;
+            return hashmap->socket_id[i];
+        }
+    }
+    return NULL;
 }
