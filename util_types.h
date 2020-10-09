@@ -113,7 +113,7 @@ typedef struct {
     bool* recv_window_isvalid; // each index indicates whether the corresponding byte has been received;
 
     int max_connections;
-    Queue connections; // contains pending connections for listening sockets.
+    // Queue connections; // contains pending connections for listening sockets.
 
 	clock_t last_send_clock;
     clock_t creation_time;

@@ -71,6 +71,7 @@ Status SocketClose(SocketID sockid) {
         return MEMORY_ERROR;
     }
 
+    // this might get stuck
     int end_fifo_read_fd = open(end_fifo_read_name, O_RDONLY);
     close(end_fifo_read_fd);
 

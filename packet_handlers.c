@@ -171,6 +171,7 @@ void receiveNewData(Socket socket, TCPPacket packet) {
                     }
                 }
             }
+
     update_recv_window(socket);
 }
 
