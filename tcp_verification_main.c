@@ -4,6 +4,8 @@
 #include<stdint.h>
 #include<stddef.h>
 
+#include <string.h>
+
 extern int nd(void);
 extern int8_t* nd_ptr(void);
 
@@ -22,19 +24,35 @@ SocketID create_socket_id(const char* src_ip, int src_port, const char* dst_ip, 
     return result;
 }
 
-int main() {
 
+
+void constructPacketVerification() {
     Socket sock = create_new_socket();
 
-    // SocketID id1 = create_socket_id("ip1", 8080, "ip2", 8080);
-    // sassert(id1 != NULL);
+    SocketID id1 = create_socket_id("ip1", 8080, "ip2", 8080);
+    sassert(id1 != NULL);
 
-    // sock->id = id1;
+    sock->id = id1;
 
-    TCPPacket packet1 = construct_packet(sock, "", ACK, 8080);
+    int flags = nd();
+    
+    char* data = "abcde";
+    // int data = nd();
+    
+    TCPPacket packet1 = construct_packet(sock, data, flags, (sock->id)->dst_port);
 
     assume(packet1 != NULL);
-    sassert(packet1->flags == ACK);
+    sassert(packet1->flags == flags);
+    sassert(packet1->src_port == (sock->id)->src_port);
+    sassert(packet1->dst_port == (sock->id)->dst_port);
+
+    sassert(packet1->data == data);
+    sassert((packet1->data)[0] == data[0]);
+
+}
+
+int main() {
+    constructPacketVerification();
 
     return 0;
 }
