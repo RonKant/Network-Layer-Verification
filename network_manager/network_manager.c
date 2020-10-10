@@ -375,8 +375,10 @@ int terminate_manager(NetworkManager manager) {
 
             if (-1 != end_fifo_read_fd) {
 
-                if (write(end_fifo_read_fd, "E", 1) == 1) {
+                if (write(end_fifo_read_fd, "E", 1) != 1) {
                     printf("Failed to notify active user about socket closing.\n");
+                } else {
+                    printf("Successfuly notified user %d about closing.\n", sock_id->src_port);
                 }
 
                 close(end_fifo_read_fd);
@@ -467,7 +469,7 @@ int bind_new_socket(NetworkManager manager, SocketID sock_id) {
     } else {
 
         HashMapErrors err = insertSocket(manager->sockets, new_socket);
-        if (err != HASH_MAP_SUCCESS) {
+        if (err != true) {
             printf("Error: failed inserting socket in to hash map.\n");
             result = -1;
         } else {
@@ -734,9 +736,10 @@ int check_and_handle_connect_request(SocketID sock_id, NetworkManager manager) {
         (sock->id)->dst_port = dst_port;
         strcpy(sock_id->dst_ip, dst_ip);
         sock_id->dst_port = dst_port;
-        if (HASH_MAP_SUCCESS != insertSocket(manager->sockets, sock)) {
+        if (true != insertSocket(manager->sockets, sock)) {
             printf("Error: hash map insertion error in socket connect.\n");
-            return -1;
+            destroy_socket(sock);
+            return 0;
         }
     }
 

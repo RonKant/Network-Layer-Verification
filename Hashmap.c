@@ -71,21 +71,18 @@ bool hasKey(HashMap hashMap, SocketID socketId){
 bool insertSocket(HashMap hashMap,Socket socket){
     if(!hashMap || !socket)
         return false;
+
     if(hashMap->number_of_sockets == HASH_MAP_DEFAULT_SIZE)
         return false;
+
     /*(if(hasKey(hashMap,socket->id))
         return false;*/
     // unsigned long offset = 0;
     // unsigned long global_size = sizeof(Socket)*HASH_MAP_DEFAULT_SIZE;
-    for(int i =0 ; i<HASH_MAP_DEFAULT_SIZE; i = i+1){
-        // offset = sizeof(Socket)*i;
-        //sassert(offset < global_size); //PROBLEM
-        //sassert(offset>=0);
-        if(hashMap->table[i] == NULL)
-            continue;
-        if(socket->id == hashMap->table[i]->id)
-            return false;
+    if (hasKey(hashMap, socket->id) == true) {
+        return false;
     }
+
     for(int j =0 ; j<HASH_MAP_DEFAULT_SIZE; j = j+1){
         //offset = sizeof(Socket)*j;
         //sassert(offset < global_size); //PROBLEM
@@ -94,8 +91,8 @@ bool insertSocket(HashMap hashMap,Socket socket){
             hashMap->table[j] = socket;
             hashMap->socket_id[j] = socket->id;
             hashMap->number_of_sockets = hashMap->number_of_sockets +1;
-            if(socket == hashMap->ghost_v)
-                hashMap-> ghost_has_v = true;
+            // if(socket == hashMap->ghost_v)
+            //     hashMap-> ghost_has_v = true;
             return true;
         }
     }
@@ -140,9 +137,10 @@ bool hashmapRemove(HashMap hashMap, SocketID key) {
         // sassert(offset>=0);
         if (hashMap->table[i] == NULL)
             continue;
-        if (compareKeys(key, hashMap->table[i]->id)) {
+        if (compareKeys(key, ((hashMap->table)[i])->id)) {
             //destroy_socket(hashMap->table[i]);
             hashMap->table[i] = NULL;
+            (hashMap->socket_id)[i] = NULL;
             hashMap->number_of_sockets = hashMap->number_of_sockets -1;
             return true;
         }

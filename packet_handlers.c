@@ -108,7 +108,7 @@ TCPPacket handle_packet_listen(Socket socket, TCPPacket packet, char* src_ip, Ne
     new_conn->state = SYN_RECEIVED;
     new_conn->seq_of_first_recv_window = packet->seq_num+1;
 
-    if (insertSocket(manager->sockets, new_conn) != HASH_MAP_SUCCESS) {
+    if (insertSocket(manager->sockets, new_conn) != true) {
         unlink_socket_fifos(new_conn);
         destroy_socket(new_conn);
         return NULL;

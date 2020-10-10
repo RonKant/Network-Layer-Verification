@@ -22,8 +22,8 @@ struct HashMap_t{
     int number_of_sockets;
     Socket table[HASH_MAP_DEFAULT_SIZE];
     SocketID socket_id[HASH_MAP_DEFAULT_SIZE];
-    Socket ghost_v;
-    bool ghost_has_v;
+    // Socket ghost_v;
+    // bool ghost_has_v;
     int iterator_index;
 };
 
