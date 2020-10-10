@@ -36,8 +36,8 @@ void constructPacketVerification() {
 
     int flags = nd();
     
-    char* data = "abcde";
-    // int data = nd();
+    char data = nd();
+    assume(data >= 'a' && data <= 'z');
     
     TCPPacket packet1 = construct_packet(sock, data, flags, (sock->id)->dst_port);
 
@@ -46,8 +46,7 @@ void constructPacketVerification() {
     sassert(packet1->src_port == (sock->id)->src_port);
     sassert(packet1->dst_port == (sock->id)->dst_port);
 
-    sassert(packet1->data == data);
-    sassert((packet1->data)[0] == data[0]);
+    sassert(packet1->data== data);
 
 }
 

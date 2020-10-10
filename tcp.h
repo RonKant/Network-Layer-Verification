@@ -8,7 +8,7 @@
 #include "socket_utils.h"
 #include "util_types.h"
 
-#define TCP_MAX_DATA 5
+#define TCP_MAX_DATA 3
 
 typedef enum {
     ACK=1, FIN=2, RST=4, SYN=8
@@ -22,7 +22,7 @@ typedef struct {
     char flags;
     int checksum;
 
-    char* data;
+    char data;
     // int data;
 } * TCPPacket;
 
@@ -53,7 +53,7 @@ int calc_checksum(TCPPacket packet);
 /**
  * Constructs a packet from given fields. ack num and seq num are updated according to data in socket.
  */
-TCPPacket construct_packet(Socket socket, char* data, char flags, int dst_port);
+TCPPacket construct_packet(Socket socket, char data, char flags, int dst_port);
 
 /**
  * frees all memory associated with packet
