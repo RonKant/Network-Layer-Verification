@@ -7,7 +7,7 @@
 #include "network.h"
 #include "array_queue.h"
 
-#define MAX_WINDOW_SIZE 1024
+#define MAX_WINDOW_SIZE 10
 
 typedef enum {
     CONNECTED_SOCKET,

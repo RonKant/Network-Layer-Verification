@@ -3,50 +3,16 @@
 #include <unistd.h>
 
 
+#include<seahorn/seahorn.h>
+#include<stdint.h>
+#include<stddef.h>
+
 #include "Functions.h"
 #include "fifo_utils.h"
 #include "socket_utils.h"
 #include "array_queue.h"
 //#include<seahorn/seahorn.h>
 
-struct socket_t {
-    SocketID id;
-    TCPState state;
-
-    int listen_fifo_read_end;
-    int listen_fifo_write_end;
-    int accept_fifo_write_end; // need these always open?
-
-    int out_fifo_read_end;
-    int in_fifo_write_end;
-    int end_fifo_read_end;
-    int end_fifo_write_end;
-
-    /**
-     * The send window stores bytes that have been sent but not yet acknowledged.
-     * bytes leave it's "left" end when acknowledged.
-     */
-    Queue send_window; // TODO: change to Tomer's queue.
-    int seq_of_first_send_window;
-
-    /**
-     * The recv window stores bytes that have been received but not yet acknowledged.
-     * It may contain "holes" indicated by recv_window_isvalid.
-     * a continuous sequence of bytes may leave this array from it's "left end" after acknowledge was sent for them.
-     */
-    char* recv_window; // contains non-continuous byte sequence received.
-    int max_recv_window_size;
-    int seq_of_first_recv_window; // seq number of first byte in recv_window - seq number of next byte to receive;
-    bool* recv_window_isvalid; // each index indicates whether the corresponding byte has been received;
-
-    int max_connections;
-    // Queue connections; // contains pending connections for listening sockets.
-
-	clock_t last_send_clock;
-    clock_t creation_time;
-    clock_t time_since_fin_sent;
-
-};
 
 
 bool is_empty_ip(char* ip) {
@@ -163,8 +129,8 @@ void destroy_socket_fifos(Socket socket) {
 
 Socket create_new_socket(){
 	Socket s = (Socket)xmalloc(sizeof(*s));
-
-	if (s == NULL) return NULL;
+    sassert(s != NULL);
+	// if (s == NULL) return NULL;
 
 	s->id = NULL;
 	s->listen_fifo_read_end = -1;
@@ -174,37 +140,48 @@ Socket create_new_socket(){
 	s->in_fifo_write_end = -1;
 	s->end_fifo_read_end = -1;
 	s->end_fifo_write_end = -1;
+    sassert(s != NULL);
 
 	s->send_window = NULL;
 	s->recv_window = NULL;
 	s->recv_window_isvalid = NULL;
+    sassert(s != NULL);
 
     s->max_recv_window_size = MAX_WINDOW_SIZE;
+    sassert(s != NULL);
 
 	s->send_window = QueueCreate();
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
 	s->recv_window_isvalid = (bool*)xmalloc(sizeof(*(s->recv_window_isvalid)) * MAX_WINDOW_SIZE);
+    sassert(s != NULL);
 
     for (int i = 0; i < s->max_recv_window_size; ++i) {
         (s->recv_window_isvalid)[i] = false;
     }
+    sassert(s != NULL);
 
     s->seq_of_first_recv_window = 0;
     s->seq_of_first_send_window = 0;
+    sassert(s != NULL);
 
-    s->last_send_clock = clock();
-    s->creation_time = clock();
+    // s->last_send_clock = clock();
+    // s->creation_time = clock();
 
-	if (NULL == s->send_window
-		|| NULL == s->recv_window
-		|| NULL == s->recv_window_isvalid) {
-			destroy_socket(s);
-			return NULL;
-		}
+    s->last_send_clock = 0;
+    s->creation_time = 0;
+    sassert(s != NULL);
+
+	// if (NULL == s->send_window
+	// 	|| NULL == s->recv_window
+	// 	|| NULL == s->recv_window_isvalid) {
+	// 		destroy_socket(s);
+	// 		return NULL;
+	// 	}
 
     for (int i = 0; i < s->max_recv_window_size; ++i) {
         (s->recv_window)[i] = false;
     }
+    sassert(s != NULL);
 
 	return s;
 }

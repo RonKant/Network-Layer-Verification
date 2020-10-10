@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "Functions.h"
 #include "socket_utils.h"
 #include "tcp.h"
 
@@ -106,14 +107,13 @@ void destroy_tcp_packet(TCPPacket packet) {
 }
 
 TCPPacket construct_packet(Socket socket, const char* data, char flags, int dst_port) {
-	TCPPacket result = (TCPPacket)malloc(sizeof(*result));
-	if (NULL == result) return NULL;
-
-	result->data = (char*)malloc(strlen(data) + 1);
-	if (NULL == result->data) {
-		free(result);
-		return NULL;
-	}
+	TCPPacket result = (TCPPacket)xmalloc(sizeof(*result));
+	// if (NULL == result) return NULL;
+	result->data = (char*)xmalloc(strlen_t(data) + 1);
+	// if (NULL == result->data) {
+	// 	free(result);
+	// 	return NULL;
+	// }
 
 	result->src_port = (socket->id)->src_port;
 	result->dst_port = dst_port;
@@ -124,7 +124,7 @@ TCPPacket construct_packet(Socket socket, const char* data, char flags, int dst_
 	result->flags = flags;
 	result->checksum = calc_checksum(result);
 
-	strcpy(result->data, data);
+	strcpy_t(result->data, data);
 
     return result;
 }
