@@ -18,8 +18,6 @@
 // extern void* nd_ptr();
 // extern void* nd();
 
-#define HASH_MAP_DEFAULT_SIZE 100
-
 bool compareKeys(SocketID key1,SocketID key2){
    
     // if (! (key1->dst_port == key2->dst_port && !strcmp_t(key1->src_ip,key2->src_ip) &&
@@ -144,7 +142,6 @@ bool hashmapRemove(HashMap hashMap, SocketID key) {
             continue;
         if (compareKeys(key, hashMap->table[i]->id)) {
             //destroy_socket(hashMap->table[i]);
-            //free(hashMap->table[i]);
             hashMap->table[i] = NULL;
             hashMap->number_of_sockets = hashMap->number_of_sockets -1;
             return true;
@@ -169,10 +166,9 @@ bool hashDestroy(HashMap hashMap){
         if (hashMap->table[i] == NULL)
             continue;
         //destroy_socket(hashMap->table[i]);
-        free(hashMap->table[i]);
+        destroy_socket(hashMap->table[i]);
     }
-    free(hashMap->table);
-    free(hashMap->socket_id);
+
     free(hashMap);
     return true;
 }
@@ -186,6 +182,7 @@ int getHashMapNumberOfSockets(HashMap hashMap){
 }
 
 SocketID hashMapGetFirst(HashMap hashmap) {
+    if (NULL == hashmap) return NULL;
     for (int i = 0; i < getHashMapSize(hashmap); ++i) {
         if (hashmap->socket_id[i] != NULL) {
             hashmap->iterator_index = i;
@@ -195,6 +192,8 @@ SocketID hashMapGetFirst(HashMap hashmap) {
     return NULL;
 }
 SocketID hashMapGetNext(HashMap hashmap) {
+    if (NULL == hashmap) return NULL;
+
     if (hashmap->iterator_index >= getHashMapSize(hashmap)) return NULL;
 
     hashmap->iterator_index++;

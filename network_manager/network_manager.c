@@ -342,15 +342,17 @@ void unlink_and_clean_manager(NetworkManager manager) {
 
     free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);
 
-    HASH_MAP_FOREACH(sock_id, manager->sockets) {
-        Socket sock = getSocket(manager->sockets, sock_id);
-        if (NULL != sock) {
-            destroy_socket_fifos(sock);
+    if (NULL != manager->sockets) {
+        HASH_MAP_FOREACH(sock_id, manager->sockets) {
+            Socket sock = getSocket(manager->sockets, sock_id);
+            if (NULL != sock) {
+                destroy_socket_fifos(sock);
+            }
         }
-    }
 
-    hashDestroy(manager->sockets);
-    manager->sockets = NULL;
+        hashDestroy(manager->sockets);
+        manager->sockets = NULL;
+    }
 }
 
 /**

@@ -14,12 +14,14 @@
 
 typedef struct HashMap_t *HashMap;
 
+#define HASH_MAP_DEFAULT_SIZE 100
+
 
 struct HashMap_t{
     int size;
     int number_of_sockets;
-    Socket table[5];
-    SocketID socket_id[5];
+    Socket table[HASH_MAP_DEFAULT_SIZE];
+    SocketID socket_id[HASH_MAP_DEFAULT_SIZE];
     Socket ghost_v;
     bool ghost_has_v;
     int iterator_index;
