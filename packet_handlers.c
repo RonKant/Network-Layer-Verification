@@ -10,6 +10,11 @@
 TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
     // printf("packet to port %d (recevied by port %d), with flags %d, in state %d.\n",
     //     packet->dst_port, (socket->id)->src_port, packet->flags, socket->state);
+    if (calc_checksum(packet) != packet->checksum) {
+        printf("Received a TCP packet with bad checksum. Real value: %d. Should be: %d.\n", packet->checksum, calc_checksum(packet));
+        return NULL;
+    }
+
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {
         socket->state = CLOSED;
         return NULL;
@@ -154,19 +159,27 @@ TCPPacket handle_packet_syn_received(Socket socket, TCPPacket packet, char* src_
 /**
  * inserts data from accepted data packet into an ESTABLISHED socket recv_window
  */
-void receiveNewData(Socket socket, TCPPacket packet) {
-    for (int i = 0; i < strlen(packet->data); ++i) { // take only missing bytes into receive window
-                int current_byte_seq = packet->seq_num + i;
+void receiveNewData(Socket socket, char* data, int sequence_num) {
+    for (int i = 0; i < strlen(data); ++i) { // take only missing bytes into receive window
+                int current_byte_seq = sequence_num + i;
                 int place_in_window = current_byte_seq - socket->seq_of_first_recv_window;
                 if (place_in_window >= 0 && place_in_window < socket->max_recv_window_size) {
                     if ((socket->recv_window_isvalid)[place_in_window] == false) {
-                        (socket->recv_window)[place_in_window] = (packet->data)[i];
+                        (socket->recv_window)[place_in_window] = data[i];
                         (socket->recv_window_isvalid)[place_in_window] = true;
                     }
                 }
             }
 
     update_recv_window(socket);
+}
+
+void update_socket_with_ack_packet(Socket socket, int packet_ack_num) {
+    while(socket->seq_of_first_send_window < packet_ack_num
+            && false == QueueIsEmpty(socket->send_window)) {
+            dequeue(socket->send_window);
+            socket->seq_of_first_send_window++;
+    }
 }
 
 TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_ip) {
@@ -180,16 +193,11 @@ TCPPacket handle_packet_established(Socket socket, TCPPacket packet, char* src_i
     }
 
     if (packet->flags & ACK) {
-        int packet_ack_num = packet->ack_num;
-        while(socket->seq_of_first_send_window < packet_ack_num
-             && false == QueueIsEmpty(socket->send_window)) {
-                dequeue(socket->send_window);
-                socket->seq_of_first_send_window++;
-        }
+        update_socket_with_ack_packet(socket, packet->ack_num);
     }
 
     if (packet->data != NULL) {
-        receiveNewData(socket, packet);
+        receiveNewData(socket, packet->data, packet->seq_num);
         return(construct_packet(socket, "", ACK, packet->src_port));
     } else {
         return NULL;

@@ -26,7 +26,7 @@ extern int nd(void);
 const char* tcp_str_repr = "%05d%05d%010d%010d%c%10d%s";
 const char* tcp_str_repr_no_data = "%05d%05d%010d%010d%c%10d";
 
-TCPPacket construct_packet(Socket socket, char data, char flags, int dst_port) {
+TCPPacket construct_packet(Socket socket, char* data, char flags, int dst_port) {
 	TCPPacket result = (TCPPacket)xmalloc(sizeof(*result));
 	// if (NULL == result) return NULL;
 	// if (NULL == result->data) {
@@ -107,7 +107,7 @@ void print_tcp_packet(TCPPacket packet) {
 			\tack_num: %d\n\
 			\tflags: %c\n\
 			\tchecksum: %d\n\
-			\tdata: %c\n",
+			\tdata: %s\n",
 			
 			packet->src_port,
 			packet->dst_port,

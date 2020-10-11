@@ -33,4 +33,8 @@ TCPPacket handle_packet_fin_wait_2(Socket socket, TCPPacket packet, char* src_ip
 TCPPacket handle_packet_closing(Socket socket, TCPPacket packet, char* src_ip);
 TCPPacket handle_packet_time_wait(Socket socket, TCPPacket packet, char* src_ip);
 
+// for verification:
+
+void update_socket_with_ack_packet(Socket socket, int packet_ack_num);
+
 #endif

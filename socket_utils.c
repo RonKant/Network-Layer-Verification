@@ -199,24 +199,27 @@ void update_recv_window(Socket socket) {
         if ((socket->recv_window_isvalid)[valid_recvs] == false) break;
     }
 
-    char* socket_recv_fifo_name = get_socket_recv_fifo_name(socket->id);
-    if (NULL == socket_recv_fifo_name) return;
+    sassert(valid_recvs >= 0 && valid_recvs <= socket->max_recv_window_size);
 
-    int bytes_written_to_user = write_string_to_fifo_name(
-        socket_recv_fifo_name, socket->recv_window, valid_recvs
-    );
+    // char* socket_recv_fifo_name = get_socket_recv_fifo_name(socket->id);
+    // if (NULL == socket_recv_fifo_name) return;
 
-    free(socket_recv_fifo_name);
+    // int bytes_written_to_user = write_string_to_fifo_name(
+    //     socket_recv_fifo_name, socket->recv_window, valid_recvs
+    // );
 
-    if (bytes_written_to_user == -1) return;
+    // free(socket_recv_fifo_name);
 
-    socket->seq_of_first_recv_window += bytes_written_to_user;
-    for (int i = 0; i < socket->max_recv_window_size - bytes_written_to_user; ++i) {
-        (socket->recv_window)[i] = (socket->recv_window)[i + bytes_written_to_user];
-        (socket->recv_window_isvalid)[i] = (socket->recv_window_isvalid)[i + bytes_written_to_user];
+    // if (bytes_written_to_user == -1) return;
+
+    socket->seq_of_first_recv_window += valid_recvs;
+    for (int i = 0; i < socket->max_recv_window_size - valid_recvs; ++i) {
+        sassert((i + valid_recvs) >= 0 && (i + valid_recvs) < socket->max_recv_window_size);
+        (socket->recv_window)[i] = (socket->recv_window)[i + valid_recvs];
+        (socket->recv_window_isvalid)[i] = (socket->recv_window_isvalid)[i + valid_recvs];
     }
 
-    for (int i = socket->max_recv_window_size - bytes_written_to_user; i < socket->max_recv_window_size; ++i) {
+    for (int i = socket->max_recv_window_size - valid_recvs; i < socket->max_recv_window_size; ++i) {
         (socket->recv_window_isvalid)[i] = false;
     }
 }

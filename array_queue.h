@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define DEFAULT_QUEUE_CAPACITY 5
+#define DEFAULT_QUEUE_CAPACITY 10
 
 #define QUEUE_EMPTY_ELEMENT '\0'
 
