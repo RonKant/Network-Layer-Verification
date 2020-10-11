@@ -142,7 +142,7 @@ Socket create_new_socket(){
     s->max_recv_window_size = MAX_WINDOW_SIZE;
     s->recv_window_size = s->max_recv_window_size; // redundant
 
-	s->connections = NULL;
+	//s->connections = NULL;
 
 	//s->send_window = QueueCreate(5); // TODO: change to actual functions
 	s->recv_window = (char*)xmalloc(sizeof(*(s->recv_window)) * MAX_WINDOW_SIZE);
@@ -180,7 +180,7 @@ void* copy_socket(void* to_copy) {
 	s->recv_window = NULL;
 	s->recv_window_isvalid = NULL;
 
-	s->connections = NULL;
+	//s->connections = NULL;
 
     // copy now:
 
@@ -216,13 +216,14 @@ void* copy_socket(void* to_copy) {
         (s->recv_window_isvalid)[i] = (to_copy_socket->recv_window_isvalid)[i];
     }
 
-    if (NULL != to_copy_socket->connections) {
+    /*(if (NULL != to_copy_socket->connections) {
         s->connections = QueueCopy(to_copy_socket->connections,NULL); //TO DO: what the hell to put in copy?
         if (NULL == s->connections) {
             destroy_socket(s);
             return NULL;
         }
     }
+     */
 
     s->state = to_copy_socket->state;
     s->listen_fifo_read_end = to_copy_socket->listen_fifo_read_end;

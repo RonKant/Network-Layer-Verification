@@ -38,18 +38,8 @@ typedef bool (*compareSocket)(Socket,Socket,HashMapErrors *error);
 typedef HashMapErrors (*freeSocket)(Socket);
 typedef Socket (*copySocket)(Socket,HashMapErrors *error);
 
-bool socketCompare(Socket,Socket,HashMapErrors *error);
-Socket socketCopy(Socket socket,HashMapErrors *error);
-HashMapErrors socketFree(Socket socket);
-
-
-typedef SocketID (*copyKey)(SocketID,HashMapErrors *error);
-typedef HashMapErrors (*freeKey)(SocketID);
-typedef bool (*compareKey)(SocketID ,SocketID);
 
 bool compareKeys(SocketID key1,SocketID key2);
-SocketID copyKeyFunction(SocketID key,HashMapErrors *error);
-HashMapErrors keyFree(SocketID);
 
 HashMap createHashMap();
 bool insertSocket(HashMap hashMap,Socket socket);
@@ -59,11 +49,7 @@ bool hashDestroy(HashMap hashMap);
 int getHashMapNumberOfSockets(HashMap hashMap);
 bool hasKey(HashMap hashMap, SocketID socketId);
 
-void hashMapSetSize(HashMap hashMap);
 int getHashMapSize(HashMap hashMap);
-bool HashMapSocketRemoveCond(Socket socket, SocketID socketId);
-
-bool HashMapcmp(HashMap hashMap1, HashMap hashMap2);
 
 #define HASH_MAP_FOREACH(sock_id, hashmap) \
     for (SocketID sock_id = hashMapGetFirst(hashmap); \

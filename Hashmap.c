@@ -15,17 +15,11 @@
 #include "seahorn/seahorn.h"
 
 extern void* nd_ptr();
-extern void* nd();
-
-
+extern int nd();
 
 bool compareKeys(SocketID key1,SocketID key2){
     if(key1 == key2)
         return true;
-    //assume(key1 != NULL && key2 != NULL);
-    //assume(key1->dst_port >0 && key1->src_port >0&&key2->dst_port >0 && key2->src_port >0);
-    //assume(strcmp_t(key1->src_ip,"") != 0 && strcmp_t(key1->dst_ip,"") != 0 && strcmp_t(key2->src_ip,"") != 0 && strcmp_t(key2->dst_ip,"") != 0);
-    //return key1->dst_port == key2->dst_port && key1->src_port == key2->src_port;
     return key1->dst_port == key2->dst_port && !strcmp_t(key1->src_ip,key2->src_ip) &&
            key1->src_port == key2->src_port && !strcmp_t(key1->dst_ip,key2->dst_ip);
 }
@@ -57,23 +51,23 @@ bool insertSocket(HashMap hashMap,Socket socket){
         return false;
     if(hashMap->number_of_sockets == 5)
         return false;
-    /*(if(hasKey(hashMap,socket->id))
-        return false;*/
     unsigned long offset = 0;
     unsigned long global_size = sizeof(Socket)*5;
     for(int i =0 ; i<5; i = i+1){
         offset = sizeof(Socket)*i;
-        //sassert(offset < global_size); //PROBLEM
-        //sassert(offset>=0);
+        sassert(offset < global_size);
+        sassert(offset>=0);
         if(hashMap->table[i] == NULL)
             continue;
         if(socket->id == hashMap->table[i]->id)
             return false;
+        /*if(compareKeys(hashMap->table[i]->id,socket->id))
+            return false;*/
     }
     for(int j =0 ; j<5; j = j+1){
-        //offset = sizeof(Socket)*j;
-        //sassert(offset < global_size); //PROBLEM
-        //sassert(offset>=0);
+        offset = sizeof(Socket)*j;
+        sassert(offset < global_size); //PROBLEM
+        sassert(offset>=0);
         if(hashMap->table[j] == NULL) {
             hashMap->table[j] = socket;
             hashMap->socket_id[j] = socket->id;
@@ -87,7 +81,17 @@ bool insertSocket(HashMap hashMap,Socket socket){
 }
 
 Socket getSocket(HashMap hashMap,SocketID key){
-    unsigned long offset = 0;
+
+    if(hashMap->ghost_v->id == key)
+    {
+        if(hashMap->ghost_has_v == 1)
+        {
+            assume(hashMap->ghost_v != NULL);
+            return hashMap->ghost_v;
+        }
+    }
+    return NULL;
+    /*unsigned long offset = 0;
     unsigned long global_size;
     if (hashMap == NULL || key == NULL)
         return NULL;
@@ -107,6 +111,7 @@ Socket getSocket(HashMap hashMap,SocketID key){
             return hashMap->table[i];
     }
     return NULL;
+    */
 }
 
 bool hashmapRemove(HashMap hashMap, SocketID key) {
@@ -120,13 +125,12 @@ bool hashmapRemove(HashMap hashMap, SocketID key) {
     global_size = sizeof((hashMap->table))*5;
     for(int i =0 ; i<5; i = i+1) {
         offset = sizeof((hashMap->table))*i;
-        sassert(offset < global_size); //PROBLEM
+        sassert(offset < global_size);
         sassert(offset>=0);
         if (hashMap->table[i] == NULL)
             continue;
         if (compareKeys(key, hashMap->table[i]->id)) {
-            //destroy_socket(hashMap->table[i]);
-            //free(hashMap->table[i]);
+            hashMap->socket_id[i] = NULL;
             hashMap->table[i] = NULL;
             hashMap->number_of_sockets = hashMap->number_of_sockets -1;
             return true;
@@ -140,7 +144,7 @@ bool hashDestroy(HashMap hashMap){
     //unsigned int global_size;
     if(!hashMap)
     {
-       return false;
+        return false;
     }
     //offset = 0;
     //global_size = sizeof((hashMap->table))*5;
