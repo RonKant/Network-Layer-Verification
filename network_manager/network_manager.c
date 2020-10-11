@@ -22,7 +22,7 @@ void unlink_socket_fifos_server_side(Socket sock, NetworkManager manager) {
 
     if (NULL == end_fifo_write_name
         || 0 != unlink(end_fifo_write_name)) {
-        printf("\tFailed unlinking end fifo write end of socket (delete manually).\n");
+        // printf("\tFailed unlinking end fifo write end of socket (delete manually).\n");
     }
 
     free(end_fifo_write_name);
@@ -30,7 +30,7 @@ void unlink_socket_fifos_server_side(Socket sock, NetworkManager manager) {
     char* accept_fifo_name = get_accept_fifo_write_end_name(sock->id);
     if (NULL == accept_fifo_name
         || 0 != unlink(accept_fifo_name)) {
-        printf("\tFailed unlinking accept fifo of socket (delete manually).\n");
+        // printf("\tFailed unlinking accept fifo of socket (delete manually).\n");
     }
 
     free(accept_fifo_name);
@@ -38,7 +38,7 @@ void unlink_socket_fifos_server_side(Socket sock, NetworkManager manager) {
     char* send_fifo_name = get_socket_send_fifo_name(sock->id);
     if (NULL == send_fifo_name
         || 0 != unlink(send_fifo_name)) {
-        printf("\tFailed unlinking send fifo of socket (delete manually).\n");
+        // printf("\tFailed unlinking send fifo of socket (delete manually).\n");
     }
 
     free(send_fifo_name);
@@ -47,7 +47,7 @@ void unlink_socket_fifos_server_side(Socket sock, NetworkManager manager) {
 
     if (NULL == recv_fifo_name
         || 0 != unlink(recv_fifo_name)) {
-        printf("\tFailed unlinking recv fifo of socket (delete manually).\n");
+        // printf("\tFailed unlinking recv fifo of socket (delete manually).\n");
     }
 
     free(recv_fifo_name);
@@ -266,7 +266,7 @@ int handle_incoming_ip_packet(IPPacket packet, NetworkManager manager) {
         if (NULL != sock) {
             reply = handle_packet(sock, tcp_packet, id->src_ip, manager);
         } else {
-            printf("TCP recepient not found.\n");
+            // printf("TCP recepient not found.\n");
         }
     }
     if (NULL != reply) {
@@ -337,7 +337,7 @@ void unlink_and_clean_manager(NetworkManager manager) {
         || in_packet_fifo_name == NULL
         || in_packet_fifo_name == NULL
         || connect_request_fifo_name == NULL) {
-            printf("Failed to extract fifo names for manager (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
+            // printf("Failed to extract fifo names for manager (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
         }
 
     free(terminate_fifo_name); free(in_packet_fifo_name); free(bind_request_fifo_name); free(connect_request_fifo_name);

@@ -240,7 +240,7 @@ void unlink_socket_fifos(Socket socket) {
 		|| in_fifo_write_end_name == NULL
 		|| end_fifo_read_end_name == NULL
 		|| end_fifo_write_end_name == NULL) {
-            printf("Failed to extract fifo names for socket (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
+            // printf("Failed to extract fifo names for socket (delete manually at %s).\n", FIFO_FOLDER_PATH_PREFIX);
         }
 
     unlink(listen_fifo_read_end_name);

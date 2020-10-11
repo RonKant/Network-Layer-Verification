@@ -8,6 +8,19 @@
 #include "network_manager/network_manager.h"
 
 TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkManager manager) {
+
+    printf("Packet: (");
+    if (packet->flags & SYN) printf("SYN|");
+    if (packet->flags & ACK) printf("ACK|");
+    if (packet->flags & FIN) printf("FIN|");
+    if (packet->flags & RST) printf("RST|");
+    printf(")");
+    if (NULL != packet->data) printf(" data length: %ld", strlen(packet->data));
+    printf(" ports: %d --> %d\n",
+        packet->src_port, packet->dst_port
+    );
+
+
     // printf("packet to port %d (recevied by port %d), with flags %d, in state %d.\n",
     //     packet->dst_port, (socket->id)->src_port, packet->flags, socket->state);
     if ((packet->flags & RST) && (!(socket->state == LISTEN))) {

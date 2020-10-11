@@ -424,12 +424,12 @@ Status SocketConnect(SocketID sockid, Address foreignAddr) {
             char* end_fifo_write_name = get_end_fifo_write_end_name(sockid);
 
             if (NULL ==end_fifo_read_name
-                || 0 != unlink(end_fifo_read_name))
-                printf("Failed to unlink end fifo read name (delete manually).\n");
+                || 0 != unlink(end_fifo_read_name)) {}
+                // printf("Failed to unlink end fifo read name (delete manually).\n");
 
             if (NULL ==end_fifo_write_name
-                || 0 != unlink(end_fifo_write_name))
-                printf("Failed to unlink end fifo write name (delete manually).\n");
+                || 0 != unlink(end_fifo_write_name)) {}
+                // printf("Failed to unlink end fifo write name (delete manually).\n");
 
             free(end_fifo_read_name);
             free(end_fifo_write_name);
