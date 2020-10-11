@@ -11,29 +11,22 @@ In our project we will use the TCP protocol and sockets to establish the connect
 
 
 ## Implementation Description
-Our system is built on a central communication component (connectionManager)
+Our system is built on a central communication component (NetworkManager)
 which is hidden from the users or any other computer receiving the messages,
 whether they are intended for that computer or not.
 The central component has a data structure that contains and manages all the open sockets
 on the computer (each identified by an IP address+port pair).
 
-When our system receives a message, the connectionManager extracts its IP header
+When our system receives a message, the NetworkManager extracts its IP header
 and checks whether the destination address is the same as the computer it
 runs on. In the case where the message's destination is a different device, the communication component passes it onward in the network.
 
 In the case where the message is indeed directed to the current device, it is parsed for a TCP header, which is further extracted to identify the message's destination port in our system. The connectionManager will then either forward the message it to the open matching socket that
-listens on that port, or otherwise will throw the message and send an
-error message back to the client. The message is then placed in the TCP
-window that the socket contains, to be parsed further and joined together with other TCP packets to construct their joined message and return
-that to the software that's using our socket.
+listens on that port, or otherwise will throw the message away. 
+The message is then placed in the TCP window that the socket contains, to be parsed further and joined together with other TCP packets to construct their joined message and return that to the software that is using our socket.
 
 ## Features
-1. Our system will manage the operations related to the sockets such as: creating
+Our system will manage the operations related to the sockets such as: creating
 new communication endpoints ("socket"), attaching a local address to a socket ("bind"), announcing willingness to accept connections ("listen"), blocking callers until a connection request arrives ("accept"), actively attempting to establish a connection ("connect"),
 sending data over a connection ("send"), receive data from a connection ("receive"),
 and finally, closing a connection("close").
-2. Our system will manage the "congestion control" mechanism that deals with a
-case when more data is sent to us than we can handle without losing any messages.
-3. Our system will manage the TCP window scale option, which will handle the operation
-to increase the receive window size allowed in transmission control protocol above
-the maximum value.
