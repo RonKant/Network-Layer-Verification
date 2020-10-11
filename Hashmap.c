@@ -20,8 +20,8 @@ extern int nd();
 bool compareKeys(SocketID key1,SocketID key2){
     if(key1 == key2)
         return true;
-    return key1->dst_port == key2->dst_port && !strcmp_t(key1->src_ip,key2->src_ip) &&
-           key1->src_port == key2->src_port && !strcmp_t(key1->dst_ip,key2->dst_ip);
+    return key1->dst_port == key2->dst_port /*&& !strcmp_t(key1->src_ip,key2->src_ip) */&&
+           key1->src_port == key2->src_port /*&& !strcmp_t(key1->dst_ip,key2->dst_ip)*/;
 }
 HashMap createHashMap(){
     unsigned long offset = 0;
@@ -31,7 +31,7 @@ HashMap createHashMap(){
     global_size = sizeof(Socket)*5;
     for(int i=0; i<5; i = i+1){
         offset = sizeof(Socket)*i;
-        sassert(offset < global_size); //PROBLEM
+        sassert(offset < global_size);
         sassert(offset>=0);
         hashMap->table[i] = NULL;
         hashMap->socket_id[i] = NULL;
@@ -61,19 +61,19 @@ bool insertSocket(HashMap hashMap,Socket socket){
             continue;
         if(socket->id == hashMap->table[i]->id)
             return false;
-        /*if(compareKeys(hashMap->table[i]->id,socket->id))
-            return false;*/
+        if(compareKeys(hashMap->table[i]->id,socket->id))
+            return false;
     }
     for(int j =0 ; j<5; j = j+1){
         offset = sizeof(Socket)*j;
-        sassert(offset < global_size); //PROBLEM
+        sassert(offset < global_size);
         sassert(offset>=0);
         if(hashMap->table[j] == NULL) {
             hashMap->table[j] = socket;
             hashMap->socket_id[j] = socket->id;
             hashMap->number_of_sockets = hashMap->number_of_sockets +1;
             if(socket == hashMap->ghost_v)
-                hashMap-> ghost_has_v = true;
+                hashMap->ghost_has_v = true;
             return true;
         }
     }
@@ -133,6 +133,8 @@ bool hashmapRemove(HashMap hashMap, SocketID key) {
             hashMap->socket_id[i] = NULL;
             hashMap->table[i] = NULL;
             hashMap->number_of_sockets = hashMap->number_of_sockets -1;
+            if(hashMap->ghost_v->id == key)
+                hashMap->ghost_has_v = 0;
             return true;
         }
     }
