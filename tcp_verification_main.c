@@ -191,19 +191,22 @@ void receiveWindowVerification() {
     char recv_window_old_content = sock->recv_window[equallity_idx];
     update_recv_window(sock);
 
-
     sassert(sock->recv_window_isvalid[equallity_idx] == is_valid_old_content);
     sassert(sock->recv_window[equallity_idx] == recv_window_old_content);
 
+    // int equallity_idx2 = nd();
+    // assume(equallity_idx2 >= 0 && equallity_idx < sock->max_recv_window_size - already_received_idx);
+    int equallity_idx2 = 3;
+
     int old_seq = sock->seq_of_first_recv_window;
-    sock->recv_window_isvalid[equallity_idx + already_received_idx] = nd();
-    bool is_valid_old_content_ahead = sock->recv_window_isvalid[equallity_idx + already_received_idx];
+    sock->recv_window_isvalid[equallity_idx2 + already_received_idx] = nd();
+    bool is_valid_old_content_ahead = sock->recv_window_isvalid[equallity_idx2 + already_received_idx];
 
     // now we have received a full sequence of bytes - assert that this sequence exactly is taken out.
     sock->recv_window_isvalid[0] = true;
     update_recv_window(sock);
     sassert(sock->seq_of_first_recv_window = old_seq + already_received_idx);
-    sassert(sock->recv_window_isvalid[equallity_idx] == is_valid_old_content_ahead);
+    sassert(sock->recv_window_isvalid[equallity_idx2] == is_valid_old_content_ahead);
 
 
 }
