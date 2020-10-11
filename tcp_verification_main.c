@@ -209,10 +209,10 @@ void receiveWindowVerification() {
 }
 
 int main() {
-    // constructPacketVerification();
-    // checksumVerification();
-    // relevantAckVerification();
-    // irrelevantAckVerification();
+    constructPacketVerification();
+    checksumVerification();
+    relevantAckVerification();
+    irrelevantAckVerification();
     receiveWindowVerification();
 
     return 0;
