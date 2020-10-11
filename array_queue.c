@@ -81,11 +81,9 @@ bool enqueue(Queue q, char element) {
     if (f) {
         if (q->first_nd == 'z' || q->second_nd == 'z') {
             if (q->first_nd == 'z') {
-                //sassert(false);
                 q->first_nd = element;
             } else if (q->second_nd == 'z') {
                 q->second_nd = element;
-                //sassert(false);
             }
         }
     }
@@ -110,14 +108,13 @@ QueueElement dequeue(Queue q) {
         q->nums_of_dequeue = q->nums_of_dequeue + 1;
     }
     if (q->nums_of_dequeue>q->index_choosen && q->index_choosen>-1){
-        //sassert(q->was_dequeued);
+        sassert(q->was_dequeued);
     }
     if (element == q->first_nd){
         q->first_is_out = true;
     }
     if (element == q->second_nd && q->second_nd!='z'){
-        sassert(q->second_nd == 'z');
-        //sassert(q->first_is_out);
+        sassert(q->first_is_out);
     }
     return element;
 }
