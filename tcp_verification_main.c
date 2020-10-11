@@ -91,6 +91,7 @@ void checksumVerification() {
     assume(packet1->checksum != old_checksum);
     TCPPacket reply = handle_packet(sock, packet1, "1234123412341234", NULL);
     sassert(reply == NULL);
+    sassert(packet1->src_port == -5); // to ensure the reason it was declined is bad checksum.
 }
 
 void relevantAckVerification() {
@@ -175,16 +176,16 @@ void receiveWindowVerification() {
 
     // int already_received_idx = nd();
     // assume(already_received_idx >= 0 && already_received_idx < sock->max_recv_window_size);
-    int already_received_idx = 5;
+    int already_received_idx = 5; // can be nd, just takes much more time.
 
-    for (int i = already_received_idx; i > 0; i--) {
+    for (int i = already_received_idx - 1; i > 0; i--) {
         sock->recv_window_isvalid[i] = true;
         sock->recv_window[i] = 'a';
     }
 
-    int equallity_idx = nd();
-    assume(equallity_idx >= 0 && equallity_idx < sock->max_recv_window_size);
-    // int equallity_idx = 3;
+    // int equallity_idx = nd();
+    // assume(equallity_idx >= 0 && equallity_idx < sock->max_recv_window_size);
+    int equallity_idx = 3; // can be nd, just takes much more time.
 
     bool is_valid_old_content = sock->recv_window_isvalid[equallity_idx];
     char recv_window_old_content = sock->recv_window[equallity_idx];
@@ -194,6 +195,15 @@ void receiveWindowVerification() {
     sassert(sock->recv_window_isvalid[equallity_idx] == is_valid_old_content);
     sassert(sock->recv_window[equallity_idx] == recv_window_old_content);
 
+    int old_seq = sock->seq_of_first_recv_window;
+    sock->recv_window_isvalid[equallity_idx + already_received_idx] = nd();
+    bool is_valid_old_content_ahead = sock->recv_window_isvalid[equallity_idx + already_received_idx];
+
+    // now we have received a full sequence of bytes - assert that this sequence exactly is taken out.
+    sock->recv_window_isvalid[0] = true;
+    update_recv_window(sock);
+    sassert(sock->seq_of_first_recv_window = old_seq + already_received_idx);
+    sassert(sock->recv_window_isvalid[equallity_idx] == is_valid_old_content_ahead);
 
 
 }
@@ -203,7 +213,6 @@ int main() {
     // checksumVerification();
     // relevantAckVerification();
     // irrelevantAckVerification();
-
     receiveWindowVerification();
 
     return 0;

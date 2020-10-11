@@ -221,5 +221,6 @@ void update_recv_window(Socket socket) {
 
     for (int i = socket->max_recv_window_size - valid_recvs; i < socket->max_recv_window_size; ++i) {
         (socket->recv_window_isvalid)[i] = false;
+        sassert(socket->recv_window_isvalid[i] == false);
     }
 }

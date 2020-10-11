@@ -12,6 +12,7 @@ TCPPacket handle_packet(Socket socket, TCPPacket packet, char* src_ip, NetworkMa
     //     packet->dst_port, (socket->id)->src_port, packet->flags, socket->state);
     if (calc_checksum(packet) != packet->checksum) {
         printf("Received a TCP packet with bad checksum. Real value: %d. Should be: %d.\n", packet->checksum, calc_checksum(packet));
+        packet->src_port = -5;
         return NULL;
     }
 
